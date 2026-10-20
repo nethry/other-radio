@@ -1,0 +1,69 @@
+name: other_radio
+description: Polskie radio internetowe na Androida i Windows.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_riverpod: ^3.4.3
+  dio: ^5.11.1
+  just_audio: ^0.10.6
+  just_audio_media_kit: ^2.1.0
+  media_kit_libs_windows_audio: ^1.0.9
+  audio_service: ^0.18.19
+  smtc_windows: ^1.1.0
+  # Must match the codegenVersion in smtc_windows 1.1.0's Rust bindings.
+  flutter_rust_bridge: 2.11.1
+  shared_preferences: ^2.5.6
+  hive_flutter: ^1.1.0
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.12.0
+  cached_network_image: ^4.0.4
+  url_launcher: ^6.3.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  mocktail: ^1.0.4
+  freezed: ^4.0.3
+  json_serializable: ^6.14.1
+  build_runner: ^2.16.2
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/fonts/OFL-sora.txt
+    - assets/fonts/OFL-manrope.txt
+    - assets/fonts/OFL-jetbrainsmono.txt
+  fonts:
+    - family: Manrope
+      fonts:
+        - asset: assets/fonts/Manrope-400.ttf
+          weight: 400
+        - asset: assets/fonts/Manrope-500.ttf
+          weight: 500
+        - asset: assets/fonts/Manrope-600.ttf
+          weight: 600
+        - asset: assets/fonts/Manrope-700.ttf
+          weight: 700
+        - asset: assets/fonts/Manrope-800.ttf
+          weight: 800
+    - family: Sora
+      fonts:
+        - asset: assets/fonts/Sora-400.ttf
+          weight: 400
+        - asset: assets/fonts/Sora-600.ttf
+          weight: 600
+        - asset: assets/fonts/Sora-700.ttf
+          weight: 700
+    - family: JetBrains Mono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono-500.ttf
+          weight: 500

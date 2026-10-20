@@ -1,0 +1,164 @@
+name: Release
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+
+  version:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      name: ${{ steps.version.outputs.name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: version
+        name: Validate release version
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, re
+          match = re.search(r'^version: (\d+\.\d+\.\d+)\+([1-9]\d*)\s*$', pathlib.Path('pubspec.yaml').read_text(), re.M)
+          if not match:
+              raise SystemExit('Expected pubspec version: X.Y.Z+positive-build-number')
+          version, build = match.groups()
+          if any(int(part) > 65535 for part in version.split('.')) or int(build) > 65535:
+              raise SystemExit('Windows version components must be <= 65535')
+          if os.environ['REF_TYPE'] == 'tag' and os.environ['REF_NAME'] != 'v' + version:
+              raise SystemExit('Tag must exactly match v<pubspec version>, without build suffix')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'name={version}\n')
+          PY
+
+  android:
+    needs: [checks, version]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: '3.47.7'
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - run: dart run build_runner build
+      - name: Build and verify signed APK
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
+          RELEASE_VERSION: ${{ needs.version.outputs.name }}
+        run: |
+          set -euo pipefail
+          for variable in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!variable}" ]; then echo "::error::Missing secret $variable"; exit 1; fi
+          done
+          umask 077
+          trap 'rm -f "$ANDROID_KEYSTORE_PATH"' EXIT
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
+          unset ANDROID_KEYSTORE_BASE64
+          flutter build apk --release
+          apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          "$apksigner" verify build/app/outputs/flutter-apk/app-release.apk
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/OtherRadio-Android-$RELEASE_VERSION.apk"
+      - name: Remove signing material
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: OtherRadio-Android
+          path: dist/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  windows:
+    needs: [checks, version]
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: '3.47.7'
+          channel: stable
+          cache: true
+      - name: Configure Windows prerequisites
+        shell: pwsh
+        run: |
+          New-Item -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -Force | Out-Null
+          Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -Name AllowDevelopmentWithoutDevLicense -Value 1 -Type DWord
+          rustup default stable-x86_64-pc-windows-msvc
+          if ($LASTEXITCODE) { throw 'Rust setup failed' }
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup --yes --no-progress
+            if ($LASTEXITCODE) { throw 'Inno Setup installation failed' }
+          }
+      - run: flutter config --enable-windows-desktop
+      - run: flutter pub get --enforce-lockfile
+      - run: dart run build_runner build
+      - run: flutter build windows --release
+      - name: Package complete Windows bundle and MSVC runtime
+        shell: pwsh
+        run: ./installer/windows/build_installer.ps1 -SkipFlutterBuild
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: OtherRadio-Windows
+          path: build/installer/OtherRadio-Setup-${{ needs.version.outputs.name }}.exe
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    needs: [version, android, windows]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: OtherRadio-*
+          merge-multiple: true
+          path: dist
+      - name: Publish both installers
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          RELEASE_VERSION: ${{ needs.version.outputs.name }}
+        run: |
+          set -euo pipefail
+          apk="dist/OtherRadio-Android-$RELEASE_VERSION.apk"
+          exe="dist/OtherRadio-Setup-$RELEASE_VERSION.exe"
+          test -s "$apk" && test -s "$exe"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --verify-tag --draft --title "OtherRadio $RELEASE_VERSION" --generate-notes
+          fi
+          gh release upload "$TAG" "$apk" "$exe" --clobber
+          gh release edit "$TAG" --draft=false

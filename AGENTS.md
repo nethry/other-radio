@@ -1,0 +1,28 @@
+# Development
+
+- Flutter 3.47.7 / Dart 3.13.5; `flutter pub get` → `dart run build_runner build` → `dart format lib test tool` → `flutter analyze` → `flutter test`. CI runs checks; the release workflow builds signed Android release APKs and Windows installers (see `docs/CI-CD.md`).
+- `flutter test test/playback_test.dart` checks retry/cancellation without native plugins; widget tests load the bundled fonts, run in reduced-motion mode (repeating animations would stall `pumpAndSettle`) and exercise 320–1280 px layouts, including text scale 1.3. `dart run tool/check_radio_api.dart` is the opt-in live catalogue check (no play registration).
+- Freezed/JSON outputs beside `lib/data/models/station.dart` are checked in; regenerate instead of editing them. `build_runner` 2.16.x is used because 2.17.1's build 5 dependency conflicts with json_serializable 6.14.1.
+- Keep `flutter_rust_bridge` pinned to the codegen version of `smtc_windows` (currently 2.11.1); a compatible semver range alone can introduce a runtime binding mismatch.
+- Windows needs Developer Mode for plugin symlinks, Visual Studio's Desktop development with C++ workload, and Rust/rustup for SMTC. Android release signing requires the environment variables documented in `docs/CI-CD.md`; missing credentials fail the build.
+- `skills-lock.json` tracks agent skills, not Dart dependencies. The README retains a broader product roadmap; unchecked native features require device validation.
+
+## Architecture and constraints
+
+- The application interface must be in Polish, including navigation, labels, buttons, status messages, and errors shown to users.
+- Initial targets are Android and Windows; layout priority is mobile first. Use width-based breakpoints rather than platform checks for responsive layouts.
+- `main.dart` initializes Hive/preferences and platform audio, then overrides dependencies in `core/providers.dart`. UI uses Riverpod ChangeNotifier providers backed by `StationController` / `PlaybackController`; widgets never access HTTP or audio plugins directly.
+- `RadioAudioHandler` owns the sole player and retry/cancellation state. Android initializes it through `AudioService.init`; Windows uses it directly with `just_audio_media_kit` and `SmtcService`. Restoring the last station must not autoplay.
+- After `setUrl`, reconcile `AudioPlayer.playerState`: ready can arrive while opening suppresses events, and an already-playing `play()` may emit nothing. Android task removal and notification deletion must call `stop()` to cancel pending loads/retries. Home/lock must preserve playback.
+- On Pixel, swiping the system media card can merely hide controls without notifying the app. Long-press → `Ukryj` actually stops the session; do not claim a swipe callback exists or stop audio whenever the app backgrounds.
+- Hive stores catalogue and favorite station snapshots separately so favorites survive refreshes; SharedPreferences stores last station and volume. Show cache immediately and refresh on launch. Search and genre filters operate on the fetched catalogue (up to 1000 records).
+- Radio Browser integration requires server discovery/failover, a descriptive User-Agent, and `/json/url/<stationuuid>` play registration. Use `stationuuid` as identity and `url_resolved` for playback; names are not unique.
+- Radio Browser can intermittently reset TLS/socket connections (reproduced on Pixel). Discovery and catalogue reads retry transient failures up to three attempts per host; certificate failures are not bypassed. A failed catalogue refresh is not evidence of device-wide disconnection; streams use separate servers.
+- Android must support plain-HTTP radio streams via network security configuration, plus background-audio service/receiver setup and `AudioServiceActivity`; permissions alone are insufficient. Windows builds require Visual Studio's Desktop development with C++ workload.
+- Keep fonts bundled (Manrope, Sora, JetBrains Mono; OFL texts in `assets/fonts/`) and Polish Material localizations enabled; runtime font fetching would break offline startup. Each weight is a separate static TTF declared in `pubspec.yaml`. README specifies Conventional Commit messages.
+- The UI follows the OtherRadio Claude Design canvas: tokens live in `RadioTokens` (`core/theme.dart`, read via `context.rc`), shared components in `core/ui/`. Station tiles show the Radio Browser favicon (`Station.artUri`, web URLs only) via `cached_network_image`, with the monogram as placeholder and error fallback; the logo is the `graphic_eq` glyph + `other`/`radio` wordmark in fixed brand mint, independent of the accent setting. Breakpoints: bottom tabs below 760 px window width, sidebar from 760, "Teraz gra" panel from 1180; pages switch to their wide layout from 640 px of page width. Decorative motion must honour `context.calm` (settings + platform reduce-motion).
+- Settings only expose behaviour that works. History is recorded from playback state in `HistoryController` (Hive key `history`); theme, accent, reduced motion and recent searches live in SharedPreferences.
+
+## Local guidance
+
+- Flutter architecture and responsive-layout skills are installed under `.agents/skills/`; use the relevant skill when implementing those areas. The design skill also lives there, but the app specification targets Flutter.
