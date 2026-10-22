@@ -41,7 +41,8 @@ enum FavoriteSort { own, az, recent }
 
 class StationController extends ChangeNotifier {
   StationController(this.repository) {
-    stations = repository.cached;
+    countryCode = repository.defaultCountry;
+    stations = repository.cachedFor(countryCode);
     favorites = repository.favorites;
     try {
       recentSearches = repository.recentSearches;
@@ -58,8 +59,27 @@ class StationController extends ChangeNotifier {
   List<String> recentSearches = [];
   bool loading = false;
   bool _disposed = false;
+  late String countryCode;
+  int _request = 0;
+
+  Future<void> setCountry(String value) async {
+    if (countryCode == value) return;
+    countryCode = value;
+    stations = repository.cachedFor(value);
+    searchPlace = null;
+    searchGenre = null;
+    await refresh(force: true);
+  }
+
   String? error;
   AppPage page = AppPage.browse;
+  int searchFocusRequest = 0;
+
+  void focusSearch() {
+    page = AppPage.search;
+    searchFocusRequest++;
+    notifyListeners();
+  }
 
   // Browse
   Genre genre = Genre.all;
@@ -188,24 +208,31 @@ class StationController extends ChangeNotifier {
     return list;
   }
 
-  Future<void> refresh() async {
-    if (loading) return;
+  Future<void> refresh({bool force = false}) async {
+    if (loading && !force) return;
+    final request = ++_request;
+    final country = countryCode;
     loading = true;
     error = null;
     notifyListeners();
     try {
-      stations = await repository.refresh();
+      final next = await repository.refresh(countryCode: country);
+      if (_disposed || request != _request) return;
+      stations = next;
       if (kDebugMode) {
         debugPrint('Station catalogue refreshed: ${stations.length} stations');
       }
     } catch (failure) {
+      if (_disposed || request != _request) return;
       if (kDebugMode) debugPrint('Station catalogue refresh failed: $failure');
       error = stations.isEmpty
           ? 'Nie udało się pobrać katalogu stacji. Spróbuj ponownie.'
           : 'Nie udało się odświeżyć katalogu. Wyświetlamy zapisaną listę stacji. Odtwarzanie może nadal działać.';
     } finally {
-      loading = false;
-      if (!_disposed) notifyListeners();
+      if (!_disposed && request == _request) {
+        loading = false;
+        notifyListeners();
+      }
     }
   }
 

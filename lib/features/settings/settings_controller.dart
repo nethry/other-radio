@@ -10,12 +10,29 @@ class SettingsController extends ChangeNotifier {
         orElse: () => ThemeMode.dark,
       ),
       accent = RadioAccent.byName(storage.accent),
-      reduceMotion = storage.reduceMotion;
+      reduceMotion = storage.reduceMotion,
+      language = storage.language,
+      defaultCountry = storage.defaultCountry;
 
   final RadioStorage storage;
   ThemeMode themeMode;
   RadioAccent accent;
   bool reduceMotion;
+  String language;
+  String defaultCountry;
+
+  void setLanguage(String value) {
+    if (!['pl', 'en'].contains(value)) return;
+    language = value;
+    notifyListeners();
+    storage.saveLanguage(value).catchError((Object _) {});
+  }
+
+  void setDefaultCountry(String value) {
+    defaultCountry = value;
+    notifyListeners();
+    storage.saveDefaultCountry(value).catchError((Object _) {});
+  }
 
   void setThemeMode(ThemeMode value) {
     themeMode = value;

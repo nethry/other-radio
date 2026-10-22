@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../audio/radio_audio_handler.dart';
 import '../../core/format.dart';
+import '../../core/localization.dart';
+import '../../core/ui/country_filter.dart';
 import '../../core/providers.dart';
 import '../../core/theme.dart';
 import '../../core/ui/art.dart';
@@ -19,9 +21,11 @@ void openStation(BuildContext context, Station station) {
   );
 }
 
-String countryLabel(Station s) {
+String stationCountryLabel(BuildContext context, Station s) {
   final code = s.countrycode.trim().toUpperCase();
-  return code.isEmpty || code == 'PL' ? 'Polska (PL)' : code;
+  return code.isEmpty
+      ? context.tr('nieznany')
+      : '${countryLabel(context, code)} ($code)';
 }
 
 String languageLabel(Station s) =>
@@ -83,7 +87,7 @@ class StationDetailsScreen extends ConsumerWidget {
                     ),
                     const Expanded(
                       child: Center(
-                        child: Text(
+                        child: TrText(
                           'Szczegóły stacji',
                           style: TextStyle(
                             fontSize: 15,
@@ -129,7 +133,7 @@ class StationDetailsScreen extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  '${place(station)} · Polska',
+                                  place(station),
                                   style: TextStyle(fontSize: 13, color: rc.mu),
                                 ),
                                 if (playing) ...[
@@ -191,7 +195,7 @@ class StationDetailsScreen extends ConsumerWidget {
                   index: 3,
                   child: Group(
                     children: [
-                      _Fact('Kraj', countryLabel(station)),
+                      _Fact('Kraj', stationCountryLabel(context, station)),
                       _Fact('Język', languageLabel(station)),
                       _Fact('Kodek', codecLabel(station), mono: true),
                       _Fact('Bitrate', bitrateLabel(station), mono: true),
@@ -208,7 +212,7 @@ class StationDetailsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
                 Center(
-                  child: Text(
+                  child: TrText(
                     'Dane stacji: Radio Browser',
                     style: TextStyle(fontSize: 12, color: rc.mu),
                   ),
@@ -252,11 +256,11 @@ class _Fact extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
-            Text(label, style: TextStyle(fontSize: 14, color: rc.mu)),
+            TrText(label, style: TextStyle(fontSize: 14, color: rc.mu)),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
-                value,
+                context.tr(value),
                 textAlign: TextAlign.right,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,

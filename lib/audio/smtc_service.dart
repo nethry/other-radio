@@ -49,7 +49,7 @@ class SmtcService {
               MusicMetadata(
                 title: state.title.isEmpty ? station.name : state.title,
                 artist: station.name,
-                album: 'OtherRadio • Na żywo',
+                album: handler.liveAlbum,
                 thumbnail: station.artUri?.toString(),
               ),
             )

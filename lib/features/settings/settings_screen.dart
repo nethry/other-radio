@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format.dart';
+import '../../core/localization.dart';
+import '../../core/ui/country_filter.dart';
 import '../../core/providers.dart';
 import '../../core/theme.dart';
 import '../../core/ui/controls.dart';
@@ -39,7 +41,7 @@ class SettingsScreen extends ConsumerWidget {
           children: [
             Semantics(
               header: true,
-              child: Text(
+              child: TrText(
                 'Ustawienia',
                 style: wide
                     ? heading(40, tracking: -0.035, height: 1.05)
@@ -47,7 +49,7 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
             SizedBox(height: wide ? 6 : 4),
-            Text(
+            TrText(
               'Zmiany zapisują się automatycznie',
               style: TextStyle(fontSize: wide ? 14 : 13, color: rc.mu),
             ),
@@ -108,7 +110,13 @@ class SettingsScreen extends ConsumerWidget {
 
         return ListView(
           padding: EdgeInsets.fromLTRB(side, top, side, bottom),
-          children: [header, const SizedBox(height: 24), body],
+          children: [
+            header,
+            const SizedBox(height: 24),
+            const _LocaleGroup(),
+            const SizedBox(height: 24),
+            body,
+          ],
         );
       },
     );
@@ -147,7 +155,7 @@ class _AppearanceGroup extends ConsumerWidget {
             final inline = inlineSegment && constraints.maxWidth >= 560;
             return SetRow(
               title: 'Motyw',
-              subtitle: const Text('Systemowy dopasuje się do urządzenia'),
+              subtitle: const TrText('Systemowy dopasuje się do urządzenia'),
               stacked: !inline,
               trailing: inline ? SizedBox(width: 300, child: segment) : segment,
             );
@@ -155,7 +163,7 @@ class _AppearanceGroup extends ConsumerWidget {
         ),
         SetRow(
           title: 'Kolor akcentu',
-          subtitle: const Text('Przyciski, korektor, wskaźniki'),
+          subtitle: const TrText('Przyciski, korektor, wskaźniki'),
           trailing: Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -171,7 +179,7 @@ class _AppearanceGroup extends ConsumerWidget {
         ),
         SetRow(
           title: 'Ogranicz animacje',
-          subtitle: const Text('Statyczny korektor, bez wejść list'),
+          subtitle: const TrText('Statyczny korektor, bez wejść list'),
           trailing: RadioSwitch(
             value: settings.reduceMotion,
             onChanged: settings.setReduceMotion,
@@ -236,7 +244,7 @@ class _PlaybackGroup extends ConsumerWidget {
       children: [
         SetRow(
           title: 'Głośność',
-          subtitle: const Text(
+          subtitle: const TrText(
             'Głośność i ostatnia stacja są zapamiętywane. Odtwarzanie uruchamiasz samodzielnie.',
           ),
           stacked: true,
@@ -248,7 +256,7 @@ class _PlaybackGroup extends ConsumerWidget {
                   value: volume,
                   onChanged: player.volume,
                   semanticFormatterCallback: (v) =>
-                      'Głośność ${(v * 100).round()} procent',
+                      context.tr('Głośność ${(v * 100).round()} procent'),
                 ),
               ),
               SizedBox(
@@ -282,8 +290,8 @@ class _DataGroup extends ConsumerWidget {
               title: 'Katalog stacji',
               subtitle: Text(
                 catalogue.loading
-                    ? 'Pobieranie…'
-                    : '${stationCount(catalogue.stations.length)} · dostępny także offline',
+                    ? context.tr('Pobieranie…')
+                    : '${stationCount(catalogue.stations.length, language: Localizations.localeOf(context).languageCode)} · ${context.tr('dostępny także offline')}',
               ),
               trailing: Opacity(
                 opacity: catalogue.loading ? 0.5 : 1,
@@ -319,7 +327,7 @@ class _InfoGroup extends StatelessWidget {
           children: [
             SetRow(
               title: 'Wersja',
-              trailing: Text('0.1.0', style: monoStyle(13, color: rc.mu)),
+              trailing: Text('0.2.1', style: monoStyle(13, color: rc.mu)),
             ),
             SetRow(
               title: 'Dane stacji',
@@ -340,15 +348,57 @@ class _InfoGroup extends StatelessWidget {
               onTap: () => showLicensePage(
                 context: context,
                 applicationName: 'OtherRadio',
-                applicationVersion: '0.1.0',
+                applicationVersion: '0.2.1',
               ),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        Text(
+        TrText(
           'Katalog stacji: Radio Browser. Transmisje i znaki towarowe należą do nadawców. Aplikacja nie hostuje strumieni audio.',
           style: TextStyle(fontSize: 12, color: rc.mu, height: 1.6),
+        ),
+      ],
+    );
+  }
+}
+
+class _LocaleGroup extends ConsumerWidget {
+  const _LocaleGroup();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(settingsProvider);
+    return Group(
+      children: [
+        SetRow(
+          title: 'Język aplikacji',
+          subtitle: const TrText('Język i kraj stacji są niezależne.'),
+          stacked: true,
+          trailing: Segmented<String>(
+            semanticLabel: 'Język aplikacji',
+            options: const [
+              (value: 'pl', label: 'Polski', icon: null),
+              (value: 'en', label: 'English', icon: null),
+            ],
+            selected: settings.language,
+            onChanged: settings.setLanguage,
+          ),
+        ),
+        SetRow(
+          title: 'Domyślny kraj stacji',
+          stacked: true,
+          trailing: Align(
+            alignment: Alignment.centerLeft,
+            child: RadioChip(
+              label: countryLabel(context, settings.defaultCountry),
+              dropdown: true,
+              onTap: () => pickStationCountry(context, (code) {
+                settings.setDefaultCountry(code);
+                ref.read(stationsProvider).setCountry(code);
+              }),
+            ),
+          ),
         ),
       ],
     );

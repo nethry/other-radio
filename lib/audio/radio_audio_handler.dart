@@ -62,6 +62,16 @@ class RadioAudioHandler extends BaseAudioHandler {
   int _attempts = 0;
   Timer? _retry;
   Timer? _watchdog;
+  String _language = 'pl';
+  String get liveAlbum =>
+      _language == 'en' ? 'OtherRadio • Live' : 'OtherRadio • Na żywo';
+
+  void setLanguage(String language) {
+    if (_language == language || _disposed) return;
+    _language = language;
+    _updateMediaItem();
+    _publish(snapshot.value.phase, error: snapshot.value.error);
+  }
 
   void _onPlayerState(PlayerState state) {
     if (_disposed || _failed || _opening) return;
@@ -93,7 +103,7 @@ class RadioAudioHandler extends BaseAudioHandler {
         id: station.id,
         title: _title.isEmpty ? station.name : _title,
         artist: station.name,
-        album: 'OtherRadio • Na żywo',
+        album: liveAlbum,
         artUri: station.artUri,
         isLive: true,
       ),

@@ -8,12 +8,18 @@ class StationRepository {
   final RadioStorage storage;
 
   List<Station> get cached => storage.readStations('catalogue');
+  String get defaultCountry => storage.defaultCountry;
+  List<Station> cachedFor(String countryCode) => countryCode == 'PL'
+      ? cached
+      : storage.readStations('catalogue_$countryCode');
   List<Station> get favorites => storage.readStations('favorites');
 
-  Future<List<Station>> refresh() async {
-    final stations = normalize(await client.stations());
-    if (stations.isEmpty) throw StateError('Pusta lista stacji');
-    await storage.writeStations('catalogue', stations);
+  Future<List<Station>> refresh({String countryCode = 'PL'}) async {
+    final stations = normalize(await client.stations(countryCode: countryCode));
+    await storage.writeStations(
+      countryCode == 'PL' ? 'catalogue' : 'catalogue_$countryCode',
+      stations,
+    );
     return stations;
   }
 
@@ -37,16 +43,10 @@ class StationRepository {
           final popularity = b.clickcount.compareTo(a.clickcount);
           return popularity != 0 ? popularity : b.bitrate.compareTo(a.bitrate);
         });
-    final names = <String>{};
     final ids = <String>{};
     return sorted
         .where((s) {
-          final name = s.name.trim().toLowerCase().replaceAll(
-            RegExp(r'\s+'),
-            ' ',
-          );
-          if (names.contains(name) || ids.contains(s.id)) return false;
-          names.add(name);
+          if (ids.contains(s.id)) return false;
           ids.add(s.id);
           return true;
         })

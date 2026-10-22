@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +10,7 @@ import 'package:other_radio/data/local/radio_storage.dart';
 import 'package:other_radio/data/models/station.dart';
 import 'package:other_radio/data/repositories/station_repository.dart';
 import 'package:other_radio/features/stations/station_controller.dart';
+import 'package:other_radio/features/settings/settings_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _Client extends Mock implements RadioBrowserClient {}
@@ -24,7 +26,7 @@ const station = Station(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('community records are deduplicated by normalized name and UUID, keeping popularity then bitrate', () {
+  test('community records are deduplicated by UUID, retaining distinct stations with the same name', () {
     final result = StationRepository.normalize([
       station.copyWith(
         id: 'duplicate-name',
@@ -43,7 +45,12 @@ void main() {
       station.copyWith(id: 'two', name: 'Drugie Radio'),
       station.copyWith(name: 'Duplicate UUID'),
     ]);
-    expect(result.map((s) => s.id), ['higher-bitrate', 'two', 'one']);
+    expect(result.map((s) => s.id), [
+      'higher-bitrate',
+      'duplicate-name',
+      'one',
+      'two',
+    ]);
     expect(result.first.bitrate, 192);
   });
 
@@ -64,6 +71,54 @@ void main() {
     );
     expect(art('http://example.org/logo.png')?.scheme, 'http');
   });
+
+  for (final country in ['US', '']) {
+    test(
+      'catalogue paginates beyond 1000 records for scope "$country"',
+      () async {
+        final dio = Dio();
+        final offsets = <int>[];
+        dio.interceptors.add(
+          InterceptorsWrapper(
+            onRequest: (options, handler) {
+              if (options.path.endsWith('/servers')) {
+                handler.resolve(
+                  Response(
+                    requestOptions: options,
+                    data: [
+                      {'name': 'de1.api.radio-browser.info'},
+                    ],
+                  ),
+                );
+                return;
+              }
+              expect(
+                options.queryParameters['countrycode'],
+                country.isEmpty ? null : country,
+              );
+              final offset = options.queryParameters['offset'] as int;
+              offsets.add(offset);
+              handler.resolve(
+                Response(
+                  requestOptions: options,
+                  data: [
+                    for (var i = offset; i < (offset == 0 ? 1000 : 1003); i++)
+                      station.copyWith(id: '$i', countrycode: country).toJson(),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+        final stations = await RadioBrowserClient(dio)
+            .stations(countryCode: country);
+        expect(stations.length, 1003);
+        expect(offsets, [0, 1000]);
+        expect(StationRepository.normalize(stations).length, 1003);
+        dio.close();
+      },
+    );
+  }
 
   test('API discovers hosts, rejects untrusted names, skips bad records and registers play', () async {
     final dio = Dio();
@@ -236,7 +291,8 @@ void main() {
       () async {
         await storage.writeStations('catalogue', [station]);
         await storage.writeStations('favorites', [station]);
-        when(client.stations).thenThrow(const SocketException('offline'));
+        when(() => client.stations(countryCode: 'PL'))
+            .thenThrow(const SocketException('offline'));
         final controller = StationController(repository);
         expect(controller.stations, [station]);
         await controller.refresh();
@@ -254,7 +310,7 @@ void main() {
     );
 
     test('successful refresh persists, filters compose, and last station never autoplays', () async {
-      when(client.stations).thenAnswer(
+      when(() => client.stations(countryCode: 'PL')).thenAnswer(
         (_) async => [
           station,
           station.copyWith(id: 'two', name: 'Jazz FM', tags: 'jazz'),
@@ -281,13 +337,14 @@ void main() {
     });
 
     test('catalogue server failure is not reported as disconnected and successful retry clears warning', () async {
-      when(client.stations)
+      when(() => client.stations(countryCode: 'PL'))
           .thenAnswer((_) async => throw StateError('TLS handshake failed'));
       final controller = StationController(repository);
       await controller.refresh();
       expect(controller.error, contains('katalogu stacji'));
       expect(controller.error, isNot(contains('połączeni')));
-      when(client.stations).thenAnswer((_) async => [station]);
+      when(() => client.stations(countryCode: 'PL'))
+          .thenAnswer((_) async => [station]);
       await controller.refresh();
       expect(controller.error, isNull);
       expect(controller.stations, [station]);
@@ -298,5 +355,77 @@ void main() {
       await box.put('catalogue', '{broken');
       expect(repository.cached, isEmpty);
     });
+
+    test(
+      'country caches, language and default country persist independently',
+      () async {
+        final settings = SettingsController(storage);
+        settings.setDefaultCountry('US');
+        settings.setLanguage('en');
+        final us = station.copyWith(id: 'us', countrycode: 'US');
+        when(() => client.stations(countryCode: 'US'))
+            .thenAnswer((_) async => [us]);
+        when(() => client.stations(countryCode: 'DE'))
+            .thenAnswer((_) async => []);
+        final controller = StationController(repository);
+        expect(controller.countryCode, 'US');
+        await controller.refresh();
+        await controller.toggleFavorite(us);
+        await controller.setCountry('DE');
+        expect(controller.stations, isEmpty);
+        expect(
+          controller.error,
+          isNull,
+        ); // A country with no stations is valid.
+        expect(controller.favorites, [us]);
+        expect(
+          storage.defaultCountry,
+          'US',
+        ); // Temporary filter is not a preference.
+        settings.setLanguage('pl');
+        expect(controller.countryCode, 'DE');
+        expect(SettingsController(storage).defaultCountry, 'US');
+        expect(SettingsController(storage).language, 'pl');
+        when(() => client.stations(countryCode: 'US'))
+            .thenThrow(const SocketException('offline'));
+        await controller.setCountry('US');
+        expect(controller.stations, [us]);
+        expect(controller.error, isNotNull);
+        final restarted = StationController(repository);
+        expect(restarted.countryCode, 'US');
+        expect(restarted.stations, [us]);
+        expect(restarted.favorites, [us]);
+        restarted.dispose();
+        controller.dispose();
+        settings.dispose();
+      },
+    );
+
+    test(
+      'late responses cannot overwrite a newer country or its loading state',
+      () async {
+        final pl = Completer<List<Station>>();
+        final us = Completer<List<Station>>();
+        when(() => client.stations(countryCode: 'PL'))
+            .thenAnswer((_) => pl.future);
+        when(() => client.stations(countryCode: 'US'))
+            .thenAnswer((_) => us.future);
+        final controller = StationController(repository);
+        final oldLoad = controller.refresh();
+        final newLoad = controller.setCountry('US');
+        pl.complete([station]);
+        await oldLoad;
+        expect(controller.countryCode, 'US');
+        expect(controller.stations, isEmpty);
+        expect(controller.loading, isTrue);
+        final american = station.copyWith(id: 'us', countrycode: 'US');
+        us.complete([american]);
+        await newLoad;
+        expect(controller.stations, [american]);
+        expect(controller.loading, isFalse);
+        expect(repository.cachedFor('PL'), [station]);
+        controller.dispose();
+      },
+    );
   });
 }

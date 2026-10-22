@@ -15,6 +15,8 @@ import 'app.dart';
 import 'audio/radio_audio_handler.dart';
 import 'audio/smtc_service.dart';
 import 'core/providers.dart';
+import 'core/device_capabilities.dart';
+import 'core/localization.dart';
 import 'core/theme.dart';
 import 'data/api/radio_browser_client.dart';
 import 'data/local/radio_storage.dart';
@@ -33,11 +35,15 @@ Future<void> main() async {
       ], await rootBundle.loadString('assets/fonts/OFL-$file.txt'));
     }
   });
+  var language = 'pl';
   try {
+    final preferences = await SharedPreferences.getInstance();
+    language = preferences.getString('language') ?? 'pl';
+    final television = await DeviceCapabilities.isTelevision();
     await Hive.initFlutter();
     final storage = RadioStorage(
       await Hive.openBox<String>('radio'),
-      await SharedPreferences.getInstance(),
+      preferences,
     );
     final client = RadioBrowserClient(
       Dio(
@@ -45,7 +51,7 @@ Future<void> main() async {
           connectTimeout: const Duration(seconds: 8),
           receiveTimeout: const Duration(seconds: 12),
           headers: {
-            'User-Agent': 'OtherRadio/0.1.0 (Polish internet radio; pl.otherradio.other_radio)',
+            'User-Agent': 'OtherRadio/0.2.1 (Worldwide internet radio; pl.otherradio.other_radio)',
           },
         ),
       ),
@@ -57,18 +63,22 @@ Future<void> main() async {
     final handler = Platform.isAndroid
         ? await AudioService.init<RadioAudioHandler>(
             builder: () => RadioAudioHandler(client, storage),
-            config: const AudioServiceConfig(
+            config: AudioServiceConfig(
               androidNotificationChannelId: 'pl.otherradio.playback',
-              androidNotificationChannelName: 'Odtwarzanie radia',
+              androidNotificationChannelName: language == 'en'
+                  ? 'Radio playback'
+                  : 'Odtwarzanie radia',
               androidNotificationOngoing: false,
               androidNotificationIcon: 'drawable/ic_notification',
             ),
           )
         : RadioAudioHandler(client, storage);
+    handler.setLanguage(language);
     final smtc = Platform.isWindows ? SmtcService(handler) : null;
     runApp(
       ProviderScope(
         overrides: [
+          televisionProvider.overrideWithValue(television),
           storageProvider.overrideWithValue(storage),
           repositoryProvider.overrideWithValue(
             StationRepository(client, storage),
@@ -97,13 +107,16 @@ Future<void> main() async {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'Nie udało się uruchomić radia.',
+                    translate('Nie udało się uruchomić radia.', language),
                     textAlign: TextAlign.center,
                     style: heading(22),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Zamknij aplikację i spróbuj ponownie.',
+                  Text(
+                    translate(
+                      'Zamknij aplikację i spróbuj ponownie.',
+                      language,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -116,15 +129,15 @@ Future<void> main() async {
   }
 }
 
-class _AppLifetime extends StatefulWidget {
+class _AppLifetime extends ConsumerStatefulWidget {
   const _AppLifetime({required this.handler, required this.smtc});
   final RadioAudioHandler handler;
   final SmtcService? smtc;
   @override
-  State<_AppLifetime> createState() => _AppLifetimeState();
+  ConsumerState<_AppLifetime> createState() => _AppLifetimeState();
 }
 
-class _AppLifetimeState extends State<_AppLifetime> {
+class _AppLifetimeState extends ConsumerState<_AppLifetime> {
   @override
   void dispose() {
     widget.smtc?.dispose();
@@ -133,5 +146,13 @@ class _AppLifetimeState extends State<_AppLifetime> {
   }
 
   @override
-  Widget build(BuildContext context) => const OtherRadioApp();
+  Widget build(BuildContext context) {
+    ref.listen(settingsProvider.select((settings) => settings.language), (
+      _,
+      language,
+    ) {
+      widget.handler.setLanguage(language);
+    });
+    return const OtherRadioApp();
+  }
 }

@@ -5,11 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../audio/radio_audio_handler.dart';
 import '../../core/format.dart';
+import '../../core/localization.dart';
 import '../../core/providers.dart';
 import '../../core/theme.dart';
 import '../../core/ui/art.dart';
 import '../../core/ui/controls.dart';
 import '../../core/ui/motion.dart';
+import '../../core/ui/tv_input.dart';
 import '../common.dart';
 import 'player_screen.dart';
 
@@ -78,9 +80,9 @@ class NowPanel extends ConsumerWidget {
       ),
       const SizedBox(height: 20),
       if (station == null) ...[
-        Text('Wybierz stację', style: heading(24)),
+        TrText('Wybierz stację', style: heading(24)),
         const SizedBox(height: 6),
-        Text(
+        TrText(
           'Kliknij stację na liście, aby zacząć słuchać.',
           style: TextStyle(fontSize: 13, color: rc.mu, height: 1.5),
         ),
@@ -93,7 +95,7 @@ class NowPanel extends ConsumerWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          subtitle(station),
+          subtitle(station, language: context.languageCode),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(fontSize: 13, color: rc.mu),
@@ -121,11 +123,13 @@ class NowPanel extends ConsumerWidget {
     final hints = Wrap(
       spacing: 16,
       runSpacing: 8,
-      children: const [
-        _Hint('Spacja', 'odtwórz / pauza'),
-        _Hint('Ctrl →', 'następna'),
-        _Hint('Ctrl ←', 'poprzednia'),
-      ],
+      children: TvInput.of(context)
+          ? const [_Hint('↑ ↓ ← →', 'Nawigacja'), _Hint('OK', 'Wybierz')]
+          : const [
+              _Hint('Spacja', 'odtwórz / pauza'),
+              _Hint('Ctrl →', 'następna'),
+              _Hint('Ctrl ←', 'poprzednia'),
+            ],
     );
 
     return DecoratedBox(
@@ -169,7 +173,7 @@ class _PanelTrack extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final rc = context.rc;
-    final (title, artist) = trackInfo(state);
+    final (title, artist) = trackInfo(state, context: context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -188,7 +192,7 @@ class _PanelTrack extends ConsumerWidget {
         ),
         if (state.phase == RadioPhase.error) ...[
           const SizedBox(height: 8),
-          Text(
+          TrText(
             state.error ?? 'Stacja jest niedostępna.',
             style: TextStyle(fontSize: 12, color: rc.dangerText, height: 1.4),
           ),
@@ -197,7 +201,7 @@ class _PanelTrack extends ConsumerWidget {
             child: TextButton.icon(
               onPressed: ref.read(playbackProvider).retry,
               icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Spróbuj ponownie'),
+              label: const TrText('Spróbuj ponownie'),
             ),
           ),
         ],
@@ -219,7 +223,7 @@ class _Hint extends StatelessWidget {
     children: [
       Kbd(keys),
       const SizedBox(width: 6),
-      Text(label, style: TextStyle(fontSize: 12, color: context.rc.mu)),
+      TrText(label, style: TextStyle(fontSize: 12, color: context.rc.mu)),
     ],
   );
 }

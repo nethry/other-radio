@@ -1,14 +1,31 @@
-# 📻 [OtherRadio] — Polish Internet Radio
+# 📻 [OtherRadio] — Worldwide Internet Radio
 
-A cross-platform internet radio app for the most popular Polish radio stations, with a clean, futuristic UI.
+A cross-platform internet radio app for stations around the world, with a clean, futuristic UI.
 Built with **Flutter**, powered by the community-maintained **[Radio Browser API](https://www.radio-browser.info/)**.
 
-> **Status:** Initial Flutter implementation — Windows desktop + Android. Interface language: Polish.
+> **Status:** Flutter implementation — Windows desktop + Android (phones and Android TV). Interface languages: English and Polish, independent of station country.
 > **Platform priority:** Mobile → Desktop → Web.
 
 ## Current implementation
 
-The app now includes Radio Browser server discovery/failover, a popularity-sorted Polish catalogue, local search/tag filters, persistent favorites and catalogue cache, last-station/volume restoration, and a responsive Polish UI with a mini/full player. Playback supports bounded retries, timeout/error states and ICY titles. Android background audio and Windows SMTC are wired, but still require real-device verification.
+The app includes Radio Browser server discovery/failover, worldwide station access, country selection, a popularity-sorted catalogue, local search/tag filters, persistent favorites and country-specific catalogue caches, last-station/volume restoration, and a responsive English/Polish UI with a mini/full player. Playback supports bounded retries, timeout/error states and ICY titles. Android background audio and Windows SMTC are wired; platform behavior requires real-device verification.
+
+**Country and language:** Settings lets you choose the default station country and app language independently. Poland and Polish are the initial defaults, preserving existing users' experience. Each launch opens the configured country's catalogue. Browse and Search share a temporary country filter; **Worldwide** loads all available countries, and **Use default country** returns to your saved selection. Changing the default country updates the current catalogue too. Changing language never changes country, favorites, history or playback.
+
+### Android TV
+
+The same Android APK includes a TV launcher entry and a 320×180 branded banner; a touchscreen is optional. Native Android UI-mode detection enables remote-friendly input, overscan-safe margins, slightly larger text, visible focus outlines and initial navigation focus. Layouts still adapt to available width.
+
+- **D-pad:** move between navigation, stations, filters and controls; focused stations scroll into view.
+- **OK / Select:** activate the focused control. Search opens the keyboard when you enter the search field, not simply when visiting Search.
+- **Back:** dismiss the keyboard or current dialog/player first; from a library/settings page return to Browse; from Browse use Android's normal exit behavior.
+- **Play/Pause and volume:** Android's existing media session and system volume handling remain available. Home preserves background radio playback.
+- **Favorites → Edit:** use the reorder menu's **Move up / Move down** actions with a remote.
+- Country and language settings work independently on TV, just as on mobile.
+
+Build a development APK with `flutter build apk --debug`, then sideload with `adb install -r build/app/outputs/flutter-apk/app-debug.apk`. For a signed release use the signing configuration in [CI/CD](docs/CI-CD.md). The neutral brand banner is shared by English/Polish; regenerate it on Windows with `tool/generate_tv_banner.ps1`.
+
+Automated tests exercise D-pad/OK navigation, playback activation, Back and scrolling at TV resolutions. Physical TV validation (including its on-screen keyboard and hardware media buttons) is still needed before store publication.
 
 **Toolchain:** Flutter 3.47.7 / Dart 3.13.5. Windows additionally needs Developer Mode (plugin symlinks), Visual Studio's **Desktop development with C++** workload, and **Rust/rustup** for `smtc_windows`. Android needs the Android SDK and JDK 17. Android release builds require signing credentials; see [CI/CD and releases](docs/CI-CD.md).
 
@@ -25,13 +42,15 @@ flutter run -d <device-id>
 
 Focused checks: `flutter test test/data_test.dart`, `flutter test test/playback_test.dart`, and `flutter test test/widget_test.dart`. Tests mock network/audio plugins; no radio stream is played. Run `dart run tool/check_radio_api.dart` for an optional live catalogue smoke check. `.github/workflows/ci.yml` defines checks; `release.yml` builds signed Android APKs and Windows installers. See [release setup and instructions](docs/CI-CD.md).
 
-`lib/main.dart` wires storage and platform audio; Riverpod providers in `lib/core/providers.dart` connect feature controllers to data repositories and audio services. Station model code is generated and checked in. Manrope, Sora and JetBrains Mono are bundled under the OFL for offline startup. The catalogue refreshes on launch; search/filter cover up to 1000 fetched station records. Cached listings work offline, but playback requires a connection. The visual activity indicator represents playback state, not measured audio levels.
+`lib/main.dart` wires storage and platform audio; Riverpod providers in `lib/core/providers.dart` connect feature controllers to data repositories and audio services. Station model code is generated and checked in. Manrope, Sora and JetBrains Mono are bundled under the OFL for offline startup. The catalogue refreshes on launch; requests page through the selected country (or worldwide catalogue) in batches of 1000, without a total-record cap. Search and genre filters cover that fetched catalogue. Distinct station UUIDs are retained even when names match. Cached listings work offline, but playback requires a connection. The visual activity indicator represents playback state, not measured audio levels.
 
 **Local validation:** native builds require the prerequisites above. The original specification and longer-term roadmap follow; they are not a claim that every platform behavior has been device-tested.
 
 **Android playback behavior (verified on Pixel 9 Pro):** switching live stations updates the play/loading state; pressing Home keeps audio playing; removing OtherRadio from Recents stops playback. Actual notification dismissal stops playback and cancels reconnect attempts. Android's swipe gesture can only hide the system media controls without sending a dismissal callback: use the player's Stop action, or long-press the system media card and choose **Ukryj**, to stop it. Regression tests cover early-ready events, task removal, notification deletion, and cancellation during loading/retries.
 
 **Search:** focusing the search bar hides promotional content and genre chips so results appear immediately below it. The search bar stays pinned while scrolling; **×** clears the query, exits search, and returns to the top of browsing.
+
+**Desktop shortcuts:** Space toggles playback, Ctrl+←/→ selects the previous/next queued station, Ctrl+1–9 selects favorites in their displayed order, and Ctrl+K opens and focuses Search. These also work in the full player and station details. Text fields retain Space and Ctrl+arrow editing; popup menus/dialogs keep their own key handling. Hold-to-repeat does not repeatedly toggle playback. Enter still activates a focused button.
 
 ---
 
@@ -54,7 +73,8 @@ Focused checks: `flutter test test/data_test.dart`, `flutter test test/playback_
 
 ## Goals
 
-- Fast, reliable access to the most popular Polish radio stations.
+- Access to available Radio Browser stations worldwide, with a configurable default country and country filters.
+- English and Polish interface languages, selectable independently of station country.
 - One codebase for Android and Windows now, iOS/macOS/Web later.
 - Clean, dark, futuristic look with smooth motion.
 - Background playback with system media controls on every platform.
@@ -63,7 +83,9 @@ Focused checks: `flutter test test/data_test.dart`, `flutter test test/playback_
 
 ### MVP (Phase 1)
 
-- [x] Station list for Poland, sorted by popularity (Radio Browser click count)
+- [x] Worldwide station catalogue, sorted by popularity (Radio Browser click count)
+- [x] Configurable default country and country filtering, including a worldwide view
+- [x] Independent English/Polish interface language setting
 - [x] Search by station name
 - [x] Filter by genre tag (pop, rock, news, classical, …)
 - [x] Play / pause / stop with buffering and error states (native verification pending)
@@ -205,10 +227,11 @@ All paths are relative to the chosen server, e.g. `https://<server>/json/...`.
 
 | Purpose | Endpoint |
 | ------- | -------- |
-| Popular Polish stations | `GET /json/stations/search?countrycode=PL&hidebroken=true&order=clickcount&reverse=true&limit=100` |
-| Search by name | `GET /json/stations/search?countrycode=PL&name=<query>&hidebroken=true&order=clickcount&reverse=true` |
-| Filter by tag | `GET /json/stations/search?countrycode=PL&tag=<tag>&hidebroken=true&order=clickcount&reverse=true` |
-| Tags for Poland | `GET /json/tags` (filter client-side) or use tags from fetched stations |
+| Country catalogue | `GET /json/stations/search?countrycode=<ISO-code>&hidebroken=true&order=name&limit=1000&offset=<offset>` |
+| Worldwide catalogue | Same paginated request, omitting `countrycode` |
+| Search by name | Search the fetched catalogue locally |
+| Filter by tag or region | Filter the fetched catalogue locally |
+| Genre choices | Tags from fetched stations |
 | Single station | `GET /json/stations/byuuid/<stationuuid>` |
 | **Register a play** | `GET /json/url/<stationuuid>` — call this every time the user starts a station |
 

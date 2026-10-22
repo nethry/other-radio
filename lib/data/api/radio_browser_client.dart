@@ -88,24 +88,28 @@ class RadioBrowserClient {
     throw lastError ?? StateError('Brak połączenia');
   }
 
-  Future<List<Station>> stations() async {
-    final data = await _get(
-      'stations/search',
-      query: {
-        'countrycode': 'PL',
-        'hidebroken': true,
-        'order': 'clickcount',
-        'reverse': true,
-        'limit': 1000,
-      },
-    );
+  Future<List<Station>> stations({String countryCode = 'PL'}) async {
     final result = <Station>[];
-    for (final row in data as List) {
-      try {
-        result.add(Station.fromJson(Map<String, dynamic>.from(row as Map)));
-      } on Object {
-        // One malformed community record must not discard the catalogue.
+    const pageSize = 1000;
+    for (var offset = 0; ; offset += pageSize) {
+      final data = await _get(
+        'stations/search',
+        query: {
+          if (countryCode.isNotEmpty) 'countrycode': countryCode,
+          'hidebroken': true,
+          'order': 'name',
+          'limit': pageSize,
+          'offset': offset,
+        },
+      );
+      for (final row in data as List) {
+        try {
+          result.add(Station.fromJson(Map<String, dynamic>.from(row as Map)));
+        } on Object {
+          // One malformed community record must not discard the catalogue.
+        }
       }
+      if (data.length < pageSize) break;
     }
     return result;
   }

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../audio/radio_audio_handler.dart';
 import '../../core/format.dart';
+import '../../core/localization.dart';
+import '../../core/ui/country_filter.dart';
 import '../../core/providers.dart';
 import '../../core/theme.dart';
 import '../../core/ui/art.dart';
@@ -79,8 +81,8 @@ class _MobileBrowse extends ConsumerWidget {
                   const SizedBox(height: 22),
                   Semantics(
                     header: true,
-                    child: Text(
-                      'Polskie radio,\nna żywo.',
+                    child: TrText(
+                      'Radio z całego świata,\nna żywo.',
                       style: heading(30, height: 1.1),
                     ),
                   ),
@@ -90,8 +92,8 @@ class _MobileBrowse extends ConsumerWidget {
                       const LiveDot(),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(
-                          'Wszystkie stacje z Polski w Radio Browser',
+                        child: TrText(
+                          'Stacje z całego świata w Radio Browser',
                           style: TextStyle(fontSize: 13, color: rc.mu),
                         ),
                       ),
@@ -99,6 +101,8 @@ class _MobileBrowse extends ConsumerWidget {
                   ),
                   const SizedBox(height: 22),
                   SearchLink(onTap: () => catalogue.navigate(AppPage.search)),
+                  const SizedBox(height: 16),
+                  const CountryFilter(),
                   const SizedBox(height: 22),
                 ],
               ),
@@ -131,12 +135,12 @@ class _MobileBrowse extends ConsumerWidget {
                     Expanded(
                       child: Semantics(
                         header: true,
-                        child: Text('Ulubione', style: heading(17)),
+                        child: TrText('Ulubione', style: heading(17)),
                       ),
                     ),
                     TextButton(
                       onPressed: () => catalogue.navigate(AppPage.favorites),
-                      child: const Text(
+                      child: const TrText(
                         'Pokaż wszystkie',
                         style: TextStyle(fontSize: 13),
                       ),
@@ -179,11 +183,14 @@ class _MobileBrowse extends ConsumerWidget {
                       Expanded(
                         child: Semantics(
                           header: true,
-                          child: Text('Wszystkie stacje', style: heading(17)),
+                          child: TrText('Wszystkie stacje', style: heading(17)),
                         ),
                       ),
                       Text(
-                        stationCount(list.length),
+                        stationCount(
+                          list.length,
+                          language: context.languageCode,
+                        ),
                         style: monoStyle(12, color: rc.mu),
                       ),
                     ],
@@ -351,7 +358,7 @@ class _StationRow extends StatelessWidget {
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          '${place(station)} · ${tagLine(station)}',
+                          subtitle(station, language: context.languageCode),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(fontSize: 12, color: rc.mu),
@@ -462,17 +469,17 @@ class _WideBrowse extends ConsumerWidget {
                     ),
                     const SizedBox(width: 12),
                     PopupMenuButton<BrowseSort>(
-                      tooltip: 'Sortowanie',
+                      tooltip: context.tr('Sortowanie'),
                       initialValue: catalogue.browseSort,
                       onSelected: catalogue.sortBrowse,
                       itemBuilder: (_) => const [
                         PopupMenuItem(
                           value: BrowseSort.popular,
-                          child: Text('Najpopularniejsze'),
+                          child: TrText('Najpopularniejsze'),
                         ),
                         PopupMenuItem(
                           value: BrowseSort.az,
-                          child: Text('Nazwa A–Z'),
+                          child: TrText('Nazwa A–Z'),
                         ),
                       ],
                       child: RadioChip(
@@ -496,8 +503,8 @@ class _WideBrowse extends ConsumerWidget {
                 const SizedBox(height: 24),
                 Semantics(
                   header: true,
-                  child: Text(
-                    'Polskie radio, na żywo.',
+                  child: TrText(
+                    'Radio z całego świata, na żywo.',
                     style: heading(40, tracking: -0.035, height: 1.05),
                   ),
                 ),
@@ -508,14 +515,16 @@ class _WideBrowse extends ConsumerWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Wszystkie stacje z Polski w Radio Browser · '
-                        'pokazano ${stationCount(list.length)}',
+                        '${context.tr('Stacje z całego świata w Radio Browser')} · '
+                        '${stationCount(list.length, language: Localizations.localeOf(context).languageCode)}',
                         style: TextStyle(fontSize: 14, color: rc.mu),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
+                const CountryFilter(),
+                const SizedBox(height: 16),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -588,6 +597,7 @@ class _StationCard extends StatelessWidget {
     final playing = isPlaying(state, station);
     return HoverCard(
       onTap: onTap,
+      semanticLabel: 'Odtwórz ${station.name}',
       selected: playing,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -627,7 +637,7 @@ class _StationCard extends StatelessWidget {
           ),
           const SizedBox(height: 3),
           Text(
-            subtitle(station),
+            subtitle(station, language: context.languageCode),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(fontSize: 12, height: 1.3, color: rc.mu),

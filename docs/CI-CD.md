@@ -68,7 +68,7 @@ For a build without publishing, run the Release workflow manually on the desired
 
 The installer recursively includes **all** of `build/windows/x64/runner/Release`: `other_radio.exe`, Flutter engine, plugin/native/audio DLLs, ICU, AOT code, fonts, and other assets. It also includes the complete Visual Studio x64 CRT DLL set app-locally, so users need no Flutter SDK, Rust, or separately installed Visual C++ redistributable. Windows 10 or later is required.
 
-Metadata uses OtherRadio as name/publisher. Installation is per-user under `%LOCALAPPDATA%\Programs\OtherRadio`, with a Start Menu shortcut, optional desktop shortcut, Polish installer UI, and standard Windows uninstall support. The existing stable AppId is preserved for upgrades. Uninstall removes installed files and shortcuts; user preferences are retained. The executable installer is not Authenticode-signed; Windows publisher signing is separate from Android signing.
+Metadata uses OtherRadio as name/publisher. Installation is per-user under `%LOCALAPPDATA%\Programs\OtherRadio`, with a Start Menu shortcut, optional desktop shortcut, English/Polish installer UI, and standard Windows uninstall support. Installer language, app language and station country are independent settings. The existing stable AppId is preserved for upgrades. Uninstall removes installed files and shortcuts; user preferences are retained. The executable installer is not Authenticode-signed; Windows publisher signing is separate from Android signing.
 
 Local packaging from the repository root:
 

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../audio/radio_audio_handler.dart';
 import '../../core/format.dart';
+import '../../core/localization.dart';
 import '../../core/providers.dart';
 import '../../core/theme.dart';
 import '../../core/ui/art.dart';
@@ -47,16 +48,20 @@ void openPlayer(BuildContext context) {
 }
 
 /// `(title, artist line)` for the current ICY metadata.
-(String, String) trackInfo(RadioSnapshot state) {
+(String, String) trackInfo(RadioSnapshot state, {BuildContext? context}) {
+  String tr(String value) => context?.tr(value) ?? value;
   final (title, artist) = splitTrack(state.title);
   if (title.isEmpty) {
-    return ('Brak informacji o utworze', 'Stacja nie nadaje metadanych');
+    return (
+      tr('Brak informacji o utworze'),
+      tr('Stacja nie nadaje metadanych'),
+    );
   }
   return (
     title,
     artist.isEmpty
-        ? 'z metadanych strumienia'
-        : '$artist · z metadanych strumienia',
+        ? tr('z metadanych strumienia')
+        : '$artist · ${tr('z metadanych strumienia')}',
   );
 }
 
@@ -124,13 +129,13 @@ class _MobilePlayer extends ConsumerWidget {
                       Expanded(
                         child: Column(
                           children: [
-                            Text(
+                            TrText(
                               'ODTWARZANE Z',
                               style: labelStyle(context)
                                   .copyWith(letterSpacing: 11 * 0.14),
                             ),
                             const SizedBox(height: 2),
-                            Text(
+                            TrText(
                               player.source,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -198,7 +203,7 @@ class _MobilePlayer extends ConsumerWidget {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              subtitle(station),
+                              subtitle(station, language: context.languageCode),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(fontSize: 13, color: rc.mu),
@@ -336,7 +341,7 @@ class _DesktopPlayer extends ConsumerWidget {
                                     Text(
                                       [
                                         place(station),
-                                        'Polska',
+                                        stationCountryLabel(context, station),
                                         if (tags.isNotEmpty) tags,
                                       ].join(' · '),
                                       style: TextStyle(
@@ -416,7 +421,7 @@ class _TrackCard extends ConsumerWidget {
     final rc = context.rc;
     final player = ref.watch(playbackProvider);
     final state = player.state;
-    final (title, artist) = trackInfo(state);
+    final (title, artist) = trackInfo(state, context: context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -461,7 +466,7 @@ class _TrackCard extends ConsumerWidget {
         ),
         if (state.phase == RadioPhase.error) ...[
           const SizedBox(height: 10),
-          Text(
+          TrText(
             state.error ?? 'Stacja jest niedostępna.',
             style: TextStyle(color: rc.dangerText, fontSize: 13, height: 1.4),
           ),
@@ -470,7 +475,7 @@ class _TrackCard extends ConsumerWidget {
             child: TextButton.icon(
               onPressed: player.retry,
               icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Spróbuj ponownie'),
+              label: const TrText('Spróbuj ponownie'),
             ),
           ),
         ],
@@ -497,7 +502,7 @@ class _FactsGrid extends StatelessWidget {
       ('Kodek', codecLabel(station), true, null),
       ('Bitrate', bitrateLabel(station), true, null),
       ('Strumień', streamLabel(station), false, null),
-      ('Kraj', countryLabel(station), false, null),
+      ('Kraj', stationCountryLabel(context, station), false, null),
       ('Język', languageLabel(station), false, null),
       (
         'Strona',
@@ -563,10 +568,13 @@ class _FactBox extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label.toUpperCase(), style: labelStyle(context, size: 10)),
+            Text(
+              context.tr(label).toUpperCase(),
+              style: labelStyle(context, size: 10),
+            ),
             const SizedBox(height: 4),
             Text(
-              value,
+              context.tr(value),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: mono
@@ -658,7 +666,7 @@ class VolumeRow extends ConsumerWidget {
               value: volume,
               onChanged: player.volume,
               semanticFormatterCallback: (v) =>
-                  'Głośność ${(v * 100).round()} procent',
+                  context.tr('Głośność ${(v * 100).round()} procent'),
             ),
           ),
         ),

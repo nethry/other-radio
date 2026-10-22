@@ -12,6 +12,7 @@ import '../features/stations/station_controller.dart';
 final storageProvider = Provider<RadioStorage>(
   (ref) => throw UnimplementedError('Override at startup'),
 );
+final televisionProvider = Provider<bool>((ref) => false);
 final repositoryProvider = Provider<StationRepository>(
   (ref) => throw UnimplementedError('Override at startup'),
 );

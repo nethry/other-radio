@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../audio/radio_audio_handler.dart';
 import '../../core/format.dart';
+import '../../core/localization.dart';
+import '../../core/ui/tv_input.dart';
 import '../../core/providers.dart';
 import '../../core/theme.dart';
 import '../../core/ui/art.dart';
@@ -47,7 +49,10 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
               ? null
               : () => setState(() => editing = !editing),
         );
-        final count = stationCount(favorites.length);
+        final count = stationCount(
+          favorites.length,
+          language: Localizations.localeOf(context).languageCode,
+        );
         final header = wide
             ? Wrap(
                 spacing: 16,
@@ -61,7 +66,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                     children: [
                       Semantics(
                         header: true,
-                        child: Text(
+                        child: TrText(
                           'Ulubione',
                           style: heading(40, tracking: -0.035, height: 1.05),
                         ),
@@ -75,7 +80,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                             style: TextStyle(fontSize: 14, color: rc.mu),
                           ),
                           const Kbd('Ctrl 1–9'),
-                          Text(
+                          TrText(
                             ' szybki wybór',
                             style: TextStyle(fontSize: 14, color: rc.mu),
                           ),
@@ -116,14 +121,14 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                           children: [
                             Semantics(
                               header: true,
-                              child: Text(
+                              child: TrText(
                                 'Ulubione',
                                 style: heading(30, height: 1.1),
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '$count · zapisane na tym urządzeniu',
+                              '$count · ${context.tr('zapisane na tym urządzeniu')}',
                               style: TextStyle(fontSize: 13, color: rc.mu),
                             ),
                           ],
@@ -323,7 +328,9 @@ class _FavoriteCard extends ConsumerWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            compact ? tagLine(station) : subtitle(station),
+            compact
+                ? tagLine(station, language: context.languageCode)
+                : subtitle(station, language: context.languageCode),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(fontSize: 12, height: 1.3, color: rc.mu),
@@ -388,10 +395,10 @@ class _EditList extends ConsumerWidget {
             child: Row(
               children: [
                 Tooltip(
-                  message: 'Usuń ${station.name} z ulubionych',
+                  message: context.tr('Usuń ${station.name} z ulubionych'),
                   child: Semantics(
                     button: true,
-                    label: 'Usuń ${station.name} z ulubionych',
+                    label: context.tr('Usuń ${station.name} z ulubionych'),
                     excludeSemantics: true,
                     child: Tappable(
                       onTap: () => catalogue.toggleFavorite(station),
@@ -430,7 +437,7 @@ class _EditList extends ConsumerWidget {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        tagLine(station),
+                        tagLine(station, language: context.languageCode),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontSize: 12, color: rc.mu),
@@ -438,17 +445,36 @@ class _EditList extends ConsumerWidget {
                     ],
                   ),
                 ),
-                ReorderableDragStartListener(
-                  index: i,
-                  child: Tooltip(
-                    message: 'Przeciągnij, aby zmienić kolejność',
-                    child: SizedBox(
-                      width: 44,
-                      height: 44,
-                      child: Icon(Icons.drag_indicator_rounded, color: rc.mu),
+                if (TvInput.of(context))
+                  PopupMenuButton<int>(
+                    tooltip: context.tr('Zmień kolejność'),
+                    icon: const Icon(Icons.swap_vert_rounded),
+                    onSelected: (to) => catalogue.reorderFavorite(i, to),
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: i - 1,
+                        enabled: i > 0,
+                        child: const TrText('Przenieś wyżej'),
+                      ),
+                      PopupMenuItem(
+                        value: i + 1,
+                        enabled: i < favorites.length - 1,
+                        child: const TrText('Przenieś niżej'),
+                      ),
+                    ],
+                  )
+                else
+                  ReorderableDragStartListener(
+                    index: i,
+                    child: Tooltip(
+                      message: context.tr('Przeciągnij, aby zmienić kolejność'),
+                      child: SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: Icon(Icons.drag_indicator_rounded, color: rc.mu),
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -484,7 +510,7 @@ class _AddTile extends ConsumerWidget {
                 child: Icon(Icons.add_rounded, color: rc.mu),
               ),
               const SizedBox(height: 10),
-              Text(
+              TrText(
                 'Dodaj stację',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -493,7 +519,7 @@ class _AddTile extends ConsumerWidget {
                   color: rc.mu,
                 ),
               ),
-              Text(
+              TrText(
                 'Przeglądaj katalog',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 12, color: rc.mu),
@@ -520,7 +546,7 @@ class _Hint extends StatelessWidget {
             Icon(Icons.add_rounded, size: 18, color: rc.mu),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(
+              child: TrText(
                 'Dodawaj stacje sercem — w liście, wyszukiwarce lub odtwarzaczu.',
                 style: TextStyle(fontSize: 13, color: rc.mu, height: 1.4),
               ),

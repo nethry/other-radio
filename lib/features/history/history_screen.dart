@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format.dart';
+import '../../core/localization.dart';
 import '../../core/providers.dart';
 import '../../core/theme.dart';
 import '../../core/ui/art.dart';
@@ -23,18 +24,18 @@ class HistoryScreen extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Wyczyścić historię?'),
-        content: const Text(
+        title: const TrText('Wyczyścić historię?'),
+        content: const TrText(
           'Lista ostatnio słuchanych stacji zostanie usunięta z tego urządzenia.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Anuluj'),
+            child: const TrText('Anuluj'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Wyczyść'),
+            child: const TrText('Wyczyść'),
           ),
         ],
       ),
@@ -45,7 +46,7 @@ class HistoryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final history = ref.watch(historyProvider);
-    final groups = history.groups;
+    final groups = history.groupsFor(context.languageCode);
     final queue = <String, Station>{
       for (final e in history.entries) e.station.id: e.station,
     }.values.toList();
@@ -73,13 +74,13 @@ class HistoryScreen extends ConsumerWidget {
                 children: [
                   Semantics(
                     header: true,
-                    child: Text(
+                    child: TrText(
                       'Historia',
                       style: heading(40, tracking: -0.035, height: 1.05),
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Text(
+                  TrText(
                     'Ostatnio słuchane stacje — zapisane tylko na tym urządzeniu',
                     style: TextStyle(fontSize: 14, color: rc.mu),
                   ),
@@ -122,10 +123,13 @@ class HistoryScreen extends ConsumerWidget {
                   children: [
                     Semantics(
                       header: true,
-                      child: Text('Historia', style: heading(30, height: 1.1)),
+                      child: TrText(
+                        'Historia',
+                        style: heading(30, height: 1.1),
+                      ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
+                    TrText(
                       'Ostatnio słuchane stacje',
                       style: TextStyle(fontSize: 13, color: rc.mu),
                     ),
@@ -349,7 +353,7 @@ class _TopGridWide extends ConsumerWidget {
                                 ),
                               ),
                               const SizedBox(height: 2),
-                              Text(
+                              TrText(
                                 listenDuration(t.listened),
                                 style: monoStyle(11, color: rc.mu),
                               ),
@@ -420,7 +424,7 @@ class _MobileRow extends ConsumerWidget {
                               ),
                               TextSpan(
                                 text:
-                                    ' · ${open ? 'teraz' : listenDuration(history.listened(entry))}',
+                                    ' · ${context.tr(open ? 'teraz' : listenDuration(history.listened(entry)))}',
                               ),
                             ],
                           ),
@@ -506,7 +510,7 @@ class _WideRow extends ConsumerWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        tagLine(station),
+                        tagLine(station, language: context.languageCode),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontSize: 12, color: rc.mu),
@@ -518,7 +522,7 @@ class _WideRow extends ConsumerWidget {
                   const SizedBox(width: 16),
                   ConstrainedBox(
                     constraints: const BoxConstraints(minWidth: 110),
-                    child: Text(
+                    child: TrText(
                       open
                           ? 'słuchasz teraz'
                           : listenDuration(history.listened(entry)),

@@ -37,7 +37,7 @@ SolidCompression=yes
 CloseApplications=yes
 
 [Languages]
-; The application interface is Polish; the installer matches it.
+Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "polish"; MessagesFile: "compiler:Languages\Polish.isl"
 
 [Tasks]

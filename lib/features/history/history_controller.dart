@@ -105,7 +105,9 @@ class HistoryController extends ChangeNotifier {
   Duration listened(HistoryEntry entry) =>
       isOpen(entry) ? _clock().difference(entry.start) : entry.duration;
 
-  List<HistoryGroup> get groups {
+  List<HistoryGroup> get groups => groupsFor('pl');
+
+  List<HistoryGroup> groupsFor(String language) {
     final now = _clock();
     final q = query.trim().toLowerCase();
     final result = <HistoryGroup>[];
@@ -113,7 +115,7 @@ class HistoryController extends ChangeNotifier {
       if (q.isNotEmpty && !entry.station.name.toLowerCase().contains(q)) {
         continue;
       }
-      final label = dayLabel(entry.start, now);
+      final label = dayLabel(entry.start, now, language: language);
       if (result.isEmpty || result.last.label != label) {
         result.add((label: label, entries: [entry]));
       } else {

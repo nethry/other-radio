@@ -1,14 +1,14 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/localization.dart';
 
 import '../../core/providers.dart';
 import '../../core/theme.dart';
 import '../../core/ui/art.dart';
 import '../../core/ui/controls.dart';
 import '../../core/ui/motion.dart';
+import '../../core/ui/tv_input.dart';
 import '../common.dart';
 import '../history/history_screen.dart';
 import '../player/mini_player.dart';
@@ -58,72 +58,32 @@ class _AppShellState extends ConsumerState<AppShell> {
     super.dispose();
   }
 
-  /// Space toggles playback only when no control or text field has focus,
-  /// so it never steals activation from a focused button.
-  bool get _nothingFocused {
-    final focus = FocusManager.instance.primaryFocus;
-    return focus == null || focus == _root || focus is FocusScopeNode;
-  }
-
-  void _playFavorite(int index) {
-    final catalogue = ref.read(stationsProvider);
-    final favorites = catalogue.sortedFavorites(
-      ref.read(historyProvider).lastPlayed,
-    );
-    if (index < favorites.length) {
-      playFrom(ref, favorites[index], queue: favorites, source: 'Ulubionych');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final page = ref.watch(stationsProvider.select((c) => c.page));
     final hasStation = ref.watch(
       playbackProvider.select((p) => p.state.station != null),
     );
-    final player = ref.read(playbackProvider);
-    return Shortcuts(
-      shortcuts: const {
-        SingleActivator(LogicalKeyboardKey.space): _ToggleIntent(),
+    final television = TvInput.of(context);
+    return PopScope(
+      canPop: !television || page == AppPage.browse,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && television && page != AppPage.browse) {
+          ref.read(stationsProvider).navigate(AppPage.browse);
+          _root.requestFocus();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _root.nextFocus();
+          });
+        }
       },
-      child: Actions(
-        actions: {
-          _ToggleIntent: _ToggleAction(
-            enabled: () => _nothingFocused && hasStation,
-            run: () => unawaited(ref.read(playbackProvider).toggle()),
-          ),
-        },
-        child: CallbackShortcuts(
-          bindings: {
-            const SingleActivator(
-              LogicalKeyboardKey.arrowRight,
-              control: true,
-            ): () =>
-                unawaited(player.next()),
-            const SingleActivator(
-              LogicalKeyboardKey.arrowLeft,
-              control: true,
-            ): () =>
-                unawaited(player.previous()),
-            const SingleActivator(LogicalKeyboardKey.keyK, control: true): () =>
-                ref.read(stationsProvider).navigate(AppPage.search),
-            for (var i = 0; i < 9; i++)
-              SingleActivator(
-                LogicalKeyboardKey(LogicalKeyboardKey.digit1.keyId + i),
-                control: true,
-              ): () =>
-                  _playFavorite(i),
-          },
-          child: Focus(
-            focusNode: _root,
-            autofocus: true,
-            child: LayoutBuilder(
-              builder: (context, constraints) =>
-                  constraints.maxWidth < Breakpoints.sidebar
-                  ? _compact(page, hasStation)
-                  : _wide(constraints.maxWidth, page, hasStation),
-            ),
-          ),
+      child: Focus(
+        focusNode: _root,
+        autofocus: !television,
+        child: LayoutBuilder(
+          builder: (context, constraints) =>
+              constraints.maxWidth < Breakpoints.sidebar
+              ? _compact(page, hasStation)
+              : _wide(constraints.maxWidth, page, hasStation),
         ),
       ),
     );
@@ -204,25 +164,6 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 }
 
-class _ToggleIntent extends Intent {
-  const _ToggleIntent();
-}
-
-class _ToggleAction extends Action<_ToggleIntent> {
-  _ToggleAction({required this.enabled, required this.run});
-  final bool Function() enabled;
-  final VoidCallback run;
-
-  @override
-  bool isEnabled(_ToggleIntent intent) => enabled();
-
-  @override
-  Object? invoke(_ToggleIntent intent) {
-    run();
-    return null;
-  }
-}
-
 class _Pages extends StatelessWidget {
   const _Pages({required this.page});
   final AppPage page;
@@ -255,7 +196,7 @@ class _TabBar extends ConsumerWidget {
     final rc = context.rc;
     return Semantics(
       container: true,
-      label: 'Główna nawigacja',
+      label: context.tr('Główna nawigacja'),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: rc.bar,
@@ -306,7 +247,7 @@ class _Tab extends StatelessWidget {
     return Semantics(
       selected: selected,
       button: true,
-      label: destination.label,
+      label: context.tr(destination.label),
       excludeSemantics: true,
       child: Tappable(
         onTap: onTap,
@@ -338,7 +279,7 @@ class _Tab extends StatelessWidget {
                   const SizedBox(height: 4),
                   FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: Text(
+                    child: TrText(
                       destination.label,
                       maxLines: 1,
                       style: TextStyle(
@@ -407,7 +348,7 @@ class _Sidebar extends ConsumerWidget {
                   const SizedBox(height: 28),
                   Semantics(
                     container: true,
-                    label: 'Główna nawigacja',
+                    label: context.tr('Główna nawigacja'),
                     child: Column(
                       children: [
                         for (final d in _destinations)
@@ -464,11 +405,13 @@ class _Sidebar extends ConsumerWidget {
                                     ),
                                   ),
                                 ),
-                                if (isPlaying(playback.state, s))
+                                if (isPlaying(playback.state, s)) ...[
+                                  const SizedBox(width: 12),
                                   Eq(
                                     color: rc.act,
                                     playing: playback.state.active,
                                   ),
+                                ],
                               ],
                             ),
                           ),
@@ -525,11 +468,12 @@ class _NavItem extends StatelessWidget {
     return Semantics(
       selected: selected,
       button: true,
-      label: destination.label,
+      label: context.tr(destination.label),
       excludeSemantics: true,
       child: Tappable(
         onTap: onTap,
         pressScale: 0.98,
+        autofocus: TvInput.of(context) && destination.page == AppPage.browse,
         borderRadius: BorderRadius.circular(12),
         child: AnimatedContainer(
           duration: context.calm
@@ -547,7 +491,7 @@ class _NavItem extends StatelessWidget {
               Icon(icon, size: 20, color: selected ? rc.act : rc.tx2),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
+                child: TrText(
                   destination.label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../audio/radio_audio_handler.dart';
 import '../../core/format.dart';
+import '../../core/localization.dart';
+import '../../core/ui/country_filter.dart';
+import '../../core/ui/tv_input.dart';
 import '../../core/providers.dart';
 import '../../core/theme.dart';
 import '../../core/ui/art.dart';
@@ -33,6 +36,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void initState() {
     super.initState();
     _text = TextEditingController(text: ref.read(stationsProvider).query);
+    // Ctrl+K can arrive while the player route is closing. Explicitly focus
+    // after mounting, once Navigator has restored the underlying route.
+    if (ref.read(stationsProvider).searchFocusRequest > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !TvInput.of(context)) _focus.requestFocus();
+      });
+    }
   }
 
   @override
@@ -73,6 +83,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(stationsProvider.select((c) => c.searchFocusRequest), (_, _) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focus.requestFocus();
+      });
+    });
     final catalogue = ref.watch(stationsProvider);
     // Keep the field in step when the query changes elsewhere (e.g. a tag tap
     // or clearSearch). Changing the controller during build would notify the
@@ -124,7 +139,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       fieldKey: const ValueKey('station-search'),
       controller: _text,
       focusNode: _focus,
-      autofocus: wide,
+      autofocus:
+          (wide || catalogue.searchFocusRequest > 0) && !TvInput.of(context),
       height: wide ? 56 : 52,
       fontSize: wide ? 16 : 15,
       onChanged: catalogue.search,
@@ -142,10 +158,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final region = catalogue.searchPlace;
     return [
       PopupMenuButton<String>(
-        tooltip: 'Gatunek',
+        tooltip: context.tr('Gatunek'),
         onSelected: (v) => catalogue.setSearchGenre(v.isEmpty ? null : v),
         itemBuilder: (_) => [
-          const PopupMenuItem(value: '', child: Text('Dowolny')),
+          const PopupMenuItem(value: '', child: TrText('Dowolny')),
           for (final tag in catalogue.popularTags())
             PopupMenuItem(value: tag, child: Text(tag)),
         ],
@@ -157,10 +173,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ),
       ),
       PopupMenuButton<String>(
-        tooltip: 'Miasto',
+        tooltip: context.tr('Miasto'),
         onSelected: (v) => catalogue.setSearchPlace(v.isEmpty ? null : v),
         itemBuilder: (_) => [
-          const PopupMenuItem(value: '', child: Text('Dowolne')),
+          const PopupMenuItem(value: '', child: TrText('Dowolne')),
           for (final p in catalogue.places)
             PopupMenuItem(value: p, child: Text(p)),
         ],
@@ -199,7 +215,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               const Expanded(child: SectionLabel('Ostatnio wyszukiwane')),
               TextButton(
                 onPressed: catalogue.clearRecentSearches,
-                child: const Text('Wyczyść', style: TextStyle(fontSize: 13)),
+                child: const TrText('Wyczyść', style: TextStyle(fontSize: 13)),
               ),
             ],
           ),
@@ -265,7 +281,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 const SizedBox(width: 4),
                 TextButton(
                   onPressed: _cancel,
-                  child: const Text('Anuluj', style: TextStyle(fontSize: 14)),
+                  child: const TrText('Anuluj', style: TextStyle(fontSize: 14)),
                 ),
               ],
             ),
@@ -284,6 +300,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ],
             ),
           ),
+        ),
+        const SliverPadding(
+          padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
+          sliver: SliverToBoxAdapter(child: CountryFilter()),
         ),
         if (!catalogue.searching)
           SliverPadding(
@@ -305,7 +325,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       Expanded(
                         child: Semantics(
                           header: true,
-                          child: Text(
+                          child: TrText(
                             _title(catalogue),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -314,7 +334,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text(
+                      TrText(
                         'pokazano ${results.length}',
                         style: monoStyle(12, color: rc.mu),
                       ),
@@ -381,6 +401,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _field(wide: true),
+                const SizedBox(height: 16),
+                const CountryFilter(),
                 const SizedBox(height: 22),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,7 +418,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     SizedBox(
                       height: 34,
                       child: Center(
-                        child: Text(
+                        child: TrText(
                           'Sortuj:',
                           style: TextStyle(fontSize: 13, color: rc.mu),
                         ),
@@ -404,12 +426,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     ),
                     const SizedBox(width: 8),
                     PopupMenuButton<SearchSort>(
-                      tooltip: 'Sortowanie',
+                      tooltip: context.tr('Sortowanie'),
                       initialValue: catalogue.searchSort,
                       onSelected: catalogue.setSearchSort,
                       itemBuilder: (_) => [
                         for (final s in SearchSort.values)
-                          PopupMenuItem(value: s, child: Text(s.label)),
+                          PopupMenuItem(value: s, child: TrText(s.label)),
                       ],
                       child: RadioChip(
                         label: catalogue.searchSort.label,
@@ -444,7 +466,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       Expanded(
                         child: Semantics(
                           header: true,
-                          child: Text(
+                          child: TrText(
                             _title(catalogue),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -453,7 +475,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Text(
+                      TrText(
                         'pokazano ${results.length}',
                         style: monoStyle(12, color: rc.mu),
                       ),
@@ -526,10 +548,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 }
 
 /// Up to three tags, putting those that match [query] first.
-String _tagsFor(Station s, String query) {
+String _tagsFor(Station s, String query, String language) {
   final q = query.toLowerCase();
   final genres = s.genres;
-  if (genres.isEmpty) return 'radio internetowe';
+  if (genres.isEmpty) {
+    return language == 'en' ? 'internet radio' : 'radio internetowe';
+  }
   final ordered = q.isEmpty
       ? genres
       : [
@@ -608,7 +632,7 @@ class _ResultRow extends StatelessWidget {
                         const SizedBox(height: 3),
                         Text.rich(
                           _highlight(
-                            '${place(station)} · ${_tagsFor(station, query)}',
+                            '${place(station)} · ${_tagsFor(station, query, context.languageCode)}',
                             query,
                             _hitStyle(context),
                           ),
@@ -657,7 +681,7 @@ class _TableHeader extends StatelessWidget {
     final rc = context.rc;
     final style = labelStyle(context).copyWith(letterSpacing: 1.1);
     Widget cell(String text, {TextAlign align = TextAlign.left}) => Text(
-      text.toUpperCase(),
+      context.tr(text).toUpperCase(),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       textAlign: align,
@@ -789,7 +813,7 @@ class _TableRow extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Text.rich(
                   _highlight(
-                    _tagsFor(station, query),
+                    _tagsFor(station, query, context.languageCode),
                     query,
                     _hitStyle(context),
                   ),

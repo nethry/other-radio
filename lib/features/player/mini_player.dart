@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../audio/radio_audio_handler.dart';
 import '../../core/format.dart';
+import '../../core/localization.dart';
 import '../../core/providers.dart';
 import '../../core/theme.dart';
 import '../../core/ui/art.dart';
@@ -26,9 +27,9 @@ class MiniPlayer extends ConsumerWidget {
     final error = state.phase == RadioPhase.error;
     final (title, artist) = splitTrack(state.title);
     final line = error
-        ? (state.error ?? 'Stacja jest niedostępna.')
+        ? context.tr(state.error ?? 'Stacja jest niedostępna.')
         : title.isEmpty
-        ? 'Brak informacji o utworze'
+        ? context.tr('Brak informacji o utworze')
         : artist.isEmpty
         ? title
         : '$artist — $title';

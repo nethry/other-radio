@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme.dart';
+import '../localization.dart';
+import 'tv_input.dart';
 
 /// Ink + focus + a slight press scale (`:active { transform: scale(.96) }`).
 class Tappable extends StatefulWidget {
@@ -16,6 +18,7 @@ class Tappable extends StatefulWidget {
     this.semanticLabel,
     this.selected,
     this.focusNode,
+    this.autofocus = false,
   });
   final Widget child;
   final VoidCallback? onTap;
@@ -26,6 +29,7 @@ class Tappable extends StatefulWidget {
   final String? semanticLabel;
   final bool? selected;
   final FocusNode? focusNode;
+  final bool autofocus;
 
   @override
   State<Tappable> createState() => _TappableState();
@@ -33,9 +37,13 @@ class Tappable extends StatefulWidget {
 
 class _TappableState extends State<Tappable> {
   bool _down = false;
+  bool _focused = false;
 
   @override
   Widget build(BuildContext context) {
+    final focusShape = widget.shape is OutlinedBorder
+        ? widget.shape! as OutlinedBorder
+        : RoundedRectangleBorder(borderRadius: widget.borderRadius);
     Widget result = AnimatedScale(
       scale: _down && !context.calm ? widget.pressScale : 1,
       duration: const Duration(milliseconds: 150),
@@ -44,25 +52,46 @@ class _TappableState extends State<Tappable> {
         type: MaterialType.transparency,
         child: InkWell(
           focusNode: widget.focusNode,
+          autofocus: widget.autofocus,
+          onFocusChange: (focused) => setState(() => _focused = focused),
           onTap: widget.onTap,
           onHighlightChanged: (v) => setState(() => _down = v),
           borderRadius: widget.shape == null ? widget.borderRadius : null,
           customBorder: widget.shape,
-          child: widget.child,
+          child: DecoratedBox(
+            position: DecorationPosition.foreground,
+            decoration: ShapeDecoration(
+              shape: focusShape.copyWith(
+                side: BorderSide(
+                  color:
+                      _focused &&
+                          (TvInput.of(context) ||
+                              FocusManager.instance.highlightMode ==
+                                  FocusHighlightMode.traditional)
+                      ? context.rc.act
+                      : Colors.transparent,
+                  width: 2,
+                ),
+              ),
+            ),
+            child: widget.child,
+          ),
         ),
       ),
     );
     if (widget.semanticLabel != null || widget.selected != null) {
       result = Semantics(
         button: true,
-        label: widget.semanticLabel,
+        label: widget.semanticLabel == null
+            ? null
+            : context.tr(widget.semanticLabel!),
         selected: widget.selected,
         excludeSemantics: widget.semanticLabel != null,
         child: result,
       );
     }
     if (widget.tooltip != null) {
-      result = Tooltip(message: widget.tooltip!, child: result);
+      result = Tooltip(message: context.tr(widget.tooltip!), child: result);
     }
     return result;
   }
@@ -250,12 +279,16 @@ class RadioChip extends StatelessWidget {
               Icon(icon, size: 16, color: fg),
               const SizedBox(width: 6),
             ],
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: small ? 13 : 14,
-                fontWeight: FontWeight.w600,
-                color: fg,
+            Flexible(
+              child: TrText(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: small ? 13 : 14,
+                  fontWeight: FontWeight.w600,
+                  color: fg,
+                ),
               ),
             ),
             if (dropdown) ...[
@@ -324,7 +357,7 @@ class PillButton extends StatelessWidget {
               const SizedBox(width: 8),
             ],
             Flexible(
-              child: Text(
+              child: TrText(
                 label,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -369,7 +402,7 @@ class Segmented<T> extends StatelessWidget {
         : const Duration(milliseconds: 200);
     return Semantics(
       container: true,
-      label: semanticLabel,
+      label: semanticLabel == null ? null : context.tr(semanticLabel!),
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
@@ -412,7 +445,7 @@ class Segmented<T> extends StatelessWidget {
                         ],
                         if (!iconOnly)
                           Flexible(
-                            child: Text(
+                            child: TrText(
                               o.label,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -458,7 +491,7 @@ class RadioSwitch extends StatelessWidget {
         : const Duration(milliseconds: 300);
     return Semantics(
       toggled: value,
-      label: label,
+      label: context.tr(label),
       excludeSemantics: true,
       child: Tappable(
         onTap: () => onChanged(!value),
@@ -555,7 +588,7 @@ class SetRow extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        TrText(
           title,
           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
         ),
@@ -612,7 +645,7 @@ class Kbd extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: rc.bd2),
       ),
-      child: Text(text, style: monoStyle(11, color: rc.tx2)),
+      child: TrText(text, style: monoStyle(11, color: rc.tx2)),
     );
   }
 }
@@ -666,7 +699,10 @@ class SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
     header: true,
-    child: Text(text.toUpperCase(), style: labelStyle(context, size: size)),
+    child: Text(
+      context.tr(text).toUpperCase(),
+      style: labelStyle(context, size: size),
+    ),
   );
 }
 
@@ -758,7 +794,7 @@ class _SearchFieldState extends State<SearchField> {
               decoration: InputDecoration(
                 isCollapsed: true,
                 border: InputBorder.none,
-                hintText: widget.hint,
+                hintText: context.tr(widget.hint),
                 hintStyle: TextStyle(fontSize: widget.fontSize, color: rc.mu),
               ),
               inputFormatters: [LengthLimitingTextInputFormatter(80)],
@@ -810,7 +846,7 @@ class SearchLink extends StatelessWidget {
             Icon(Icons.search_rounded, size: 20, color: rc.mu),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(
+              child: TrText(
                 'Szukaj stacji, miast, gatunków',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

@@ -70,6 +70,14 @@ class RadioStorage {
       box.put('history', jsonEncode(entries.map((e) => e.toJson()).toList()));
 
   String? get themeMode => preferences.getString('themeMode');
+  String get defaultCountry => preferences.getString('defaultCountry') ?? 'PL';
+  Future<void> saveDefaultCountry(String value) =>
+      preferences.setString('defaultCountry', value);
+
+  String get language => preferences.getString('language') ?? 'pl';
+  Future<void> saveLanguage(String value) =>
+      preferences.setString('language', value);
+
   Future<void> saveThemeMode(String value) =>
       preferences.setString('themeMode', value);
 

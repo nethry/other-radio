@@ -1,0 +1,270 @@
+import 'package:flutter/material.dart';
+
+/// App-owned copy uses Polish source keys. Broadcaster names, tags, metadata
+/// and user input are rendered with ordinary Text and are never translated.
+extension RadioLocalization on BuildContext {
+  String get languageCode =>
+      Localizations.maybeLocaleOf(this)?.languageCode ?? 'pl';
+  String tr(String message) => translate(
+    message,
+    Localizations.maybeLocaleOf(this)?.languageCode ?? 'pl',
+  );
+}
+
+String translate(String message, String language) {
+  if (language != 'en') return message;
+  final exact = english[message];
+  if (exact != null) return exact;
+  for (final entry in _templates) {
+    final match = entry.$1.firstMatch(message);
+    if (match != null) {
+      return entry.$2.replaceAllMapped(
+        RegExp(r'\{(\d+)\}'),
+        (m) => match.group(int.parse(m[1]!)) ?? '',
+      );
+    }
+  }
+  return message;
+}
+
+final _templates = <(RegExp, String)>[
+  (RegExp(r'^pokazano (\d+)$'), '{1} shown'),
+  (RegExp(r'^(\d+) godz\. (\d+) min$'), '{1} hr {2} min'),
+  (RegExp(r'^HTTP(S?) · metadane ICY$'), 'HTTP{1} · ICY metadata'),
+  (RegExp(r'^(\d+) stacj(?:a|e|i)(.*)$'), '{1} stations{2}'),
+  (RegExp(r'^Odtwórz ponownie (.*)$'), 'Play again: {1}'),
+  (RegExp(r'^Odtwórz (.*)$'), 'Play {1}'),
+  (RegExp(r'^Usuń (.*) z ulubionych$'), 'Remove {1} from favorites'),
+  (RegExp(r'^Szczegóły: (.*)$'), 'Details: {1}'),
+  (RegExp(r'^Głośność (\d+) procent$'), 'Volume {1} percent'),
+  (RegExp(r'^Gatunek: (.*)$'), 'Genre: {1}'),
+  (RegExp(r'^Miasto: (.*)$'), 'Region: {1}'),
+  (RegExp(r'^Wyniki dla „(.*)”$'), 'Results for “{1}”'),
+];
+
+/// A const-friendly localized label; ordinary station content stays in Text.
+class TrText extends StatelessWidget {
+  const TrText(
+    this.message, {
+    super.key,
+    this.style,
+    this.textAlign,
+    this.maxLines,
+    this.overflow,
+    this.softWrap,
+  });
+  final String message;
+  final TextStyle? style;
+  final TextAlign? textAlign;
+  final int? maxLines;
+  final TextOverflow? overflow;
+  final bool? softWrap;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    context.tr(message),
+    style: style,
+    textAlign: textAlign,
+    maxLines: maxLines,
+    overflow: overflow,
+    softWrap: softWrap,
+  );
+}
+
+const english = <String, String>{
+  'Nawigacja': 'Navigate',
+  'Wybierz': 'Select',
+  'Zmień kolejność': 'Reorder',
+  'Przenieś wyżej': 'Move up',
+  'Przenieś niżej': 'Move down',
+  'Koral': 'Coral',
+  'Morski': 'Teal',
+  'Limonka': 'Lime',
+  'Fiolet': 'Violet',
+  'Stacja': 'Station',
+  'Tagi': 'Tags',
+  'Akcje': 'Actions',
+  '1 stacja': '1 station',
+  'Najpopularniejsze': 'Most popular',
+  'Sortuj:': 'Sort:',
+  'Podobne gatunki': 'Related genres',
+  'Historia jest pusta': 'History is empty',
+  'Gotowe': 'Done',
+  'Edytuj': 'Edit',
+  'Ostatnio': 'Recent',
+  'zapisane na tym urządzeniu': 'saved on this device',
+  'dostępny także offline': 'also available offline',
+  'TERAZ GRA · ': 'NOW PLAYING · ',
+  'Brak informacji o utworze': 'No track information',
+  'Stacja nie nadaje metadanych': 'This station does not send metadata',
+  'z metadanych strumienia': 'from stream metadata',
+  'ODTWARZANE Z': 'PLAYING FROM',
+  'Biblioteka': 'Library',
+  'Katalogu': 'Catalogue',
+  'Ulubionych': 'Favorites',
+  'Wyszukiwania': 'Search',
+  'Historii': 'History',
+  'Szczegółów': 'Station details',
+  'nieznany': 'unknown',
+  'brak': 'none',
+  'Kodek': 'Codec',
+  'Strona': 'Website',
+  'Gra teraz': 'Playing now',
+  'W ulubionych': 'In favorites',
+  'Dane stacji: Radio Browser': 'Station data: Radio Browser',
+  'teraz': 'now',
+  'Miętowy': 'Mint',
+  'Fioletowy': 'Purple',
+  'Niebieski': 'Blue',
+  'Pomarańczowy': 'Orange',
+  'Różowy': 'Pink',
+  'Przeglądaj': 'Browse',
+  'Szukaj': 'Search',
+  'Ulubione': 'Favorites',
+  'Historia': 'History',
+  'Ustawienia': 'Settings',
+  'Radio z całego świata,\nna żywo.': 'Radio from around the world,\nlive.',
+  'Radio z całego świata, na żywo.': 'Radio from around the world, live.',
+  'Stacje z całego świata w Radio Browser':
+      'Worldwide stations on Radio Browser',
+  'Wszystkie stacje': 'All stations',
+  'Pokaż wszystkie': 'Show all',
+  'Wszystkie': 'All',
+  'Informacje': 'Information',
+  'Rozmowy': 'Talk',
+  'Klasyka': 'Classical',
+  'Regionalne': 'Regional',
+  'Popularne': 'Popular',
+  'Popularność': 'Popularity',
+  'Nazwa A–Z': 'Name A–Z',
+  'Sortowanie': 'Sort order',
+  'Odśwież stacje': 'Refresh stations',
+  'Nie znaleziono stacji': 'No stations found',
+  'Zmień filtr lub odśwież listę.': 'Change the filter or refresh the list.',
+  'Zmień wyszukiwanie lub filtry.': 'Change your search or filters.',
+  'Gatunek': 'Genre',
+  'Miasto': 'Region',
+  'Dowolny': 'Any',
+  'Dowolne': 'Any',
+  'Jakość ≥ 128 kb/s': 'Quality ≥ 128 kb/s',
+  'Tylko HTTPS': 'HTTPS only',
+  'Wyczyść': 'Clear',
+  'Anuluj': 'Cancel',
+  'Wyniki': 'Results',
+  'Trafność': 'Relevance',
+  'Jakość': 'Quality',
+  'Ostatnio wyszukiwane': 'Recent searches',
+  'Popularne gatunki': 'Popular genres',
+  'Powiązane gatunki': 'Related genres',
+  'Szukaj stacji, miast, gatunków': 'Search stations, regions, genres',
+  'Szukaj stacji': 'Search stations',
+  'Moja kolejność': 'My order',
+  'Ostatnio grane': 'Recently played',
+  'Ostatnio słuchane': 'Recently played',
+  ' szybki wybór': ' quick picks',
+  'Twoje ulubione czekają na odkrycie':
+      'Your favorites are waiting to be discovered',
+  'Naciśnij serce przy stacji, aby zapisać ją tutaj.':
+      'Tap the heart beside a station to save it here.',
+  'Przeglądaj stacje': 'Browse stations',
+  'Dodaj stację': 'Add a station',
+  'Przeglądaj katalog': 'Browse the catalogue',
+  'Dodaj stację. Przeglądaj katalog': 'Add a station. Browse the catalogue',
+  'Dodawaj stacje sercem — w liście, wyszukiwarce lub odtwarzaczu.':
+      'Save stations with the heart — in the list, search or player.',
+  'Przeciągnij, aby zmienić kolejność': 'Drag to reorder',
+  'Usuń z ulubionych': 'Remove from favorites',
+  'Dodaj do ulubionych': 'Add to favorites',
+  'Wyczyścić historię?': 'Clear history?',
+  'Lista ostatnio słuchanych stacji zostanie usunięta z tego urządzenia.':
+      'Recently played stations will be removed from this device.',
+  'Ostatnio słuchane stacje — zapisane tylko na tym urządzeniu':
+      'Recently played stations — stored only on this device',
+  'Filtruj historię': 'Filter history',
+  'Wyczyść historię': 'Clear history',
+  'Ostatnio słuchane stacje': 'Recently played stations',
+  'Stacje, których posłuchasz, pojawią się tutaj.':
+      'Stations you listen to will appear here.',
+  'Najczęściej w tym tygodniu': 'Most played this week',
+  'Brak wyników': 'No results',
+  'Żadna stacja w historii nie pasuje do filtra.':
+      'No station in your history matches the filter.',
+  'słuchasz teraz': 'listening now',
+  'Dzisiaj': 'Today',
+  'Wczoraj': 'Yesterday',
+  'Zmiany zapisują się automatycznie': 'Changes are saved automatically',
+  'Wygląd': 'Appearance',
+  'Odtwarzanie': 'Playback',
+  'Dane i sieć': 'Data and network',
+  'Motyw': 'Theme',
+  'Ciemny': 'Dark',
+  'Jasny': 'Light',
+  'Systemowy': 'System',
+  'Systemowy dopasuje się do urządzenia': 'System follows your device settings',
+  'Kolor akcentu': 'Accent color',
+  'Przyciski, korektor, wskaźniki': 'Buttons, equalizer, indicators',
+  'Ogranicz animacje': 'Reduce motion',
+  'Statyczny korektor, bez wejść list': 'Static equalizer, no list animations',
+  'Głośność': 'Volume',
+  'Głośność i ostatnia stacja są zapamiętywane. Odtwarzanie uruchamiasz samodzielnie.': 'Volume and your last station are remembered. You start playback yourself.',
+  'Katalog stacji': 'Station catalogue',
+  'Pobieranie…': 'Loading…',
+  'Odśwież': 'Refresh',
+  'Wersja': 'Version',
+  'Dane stacji': 'Station data',
+  'Licencje open source': 'Open-source licenses',
+  'Katalog stacji: Radio Browser. Transmisje i znaki towarowe należą do nadawców. Aplikacja nie hostuje strumieni audio.': 'Station catalogue: Radio Browser. Streams and trademarks belong to their broadcasters. This app does not host audio streams.',
+  'Język aplikacji': 'App language',
+  'Domyślny kraj stacji': 'Default station country',
+  'Język i kraj stacji są niezależne.':
+      'App language and station country are independent.',
+  'Kraj': 'Country',
+  'Cały świat': 'Worldwide',
+  'Wybierz kraj': 'Choose a country',
+  'Użyj domyślnego kraju': 'Use default country',
+  'GOTOWE': 'READY',
+  'ŁĄCZENIE…': 'CONNECTING…',
+  'BUFOROWANIE…': 'BUFFERING…',
+  'NA ŻYWO': 'LIVE',
+  'WSTRZYMANO': 'PAUSED',
+  'BŁĄD': 'ERROR',
+  'Wstrzymaj': 'Pause',
+  'Odtwórz': 'Play',
+  'Wznów': 'Resume',
+  'Teraz gra': 'Now playing',
+  'Wybierz stację': 'Choose a station',
+  'Kliknij stację na liście, aby zacząć słuchać.':
+      'Select a station from the list to start listening.',
+  'Pełny ekran': 'Full screen',
+  'Spacja': 'Space',
+  'odtwórz / pauza': 'play / pause',
+  'następna': 'next',
+  'poprzednia': 'previous',
+  'Stacja jest niedostępna.': 'This station is unavailable.',
+  'Stacja jest niedostępna. Spróbuj ponownie lub wybierz inną.':
+      'This station is unavailable. Try again or choose another.',
+  'Spróbuj ponownie': 'Try again',
+  'Otwórz odtwarzacz': 'Open player',
+  'Poprzednia stacja': 'Previous station',
+  'Następna stacja': 'Next station',
+  'Zamknij odtwarzacz': 'Close player',
+  'Informacje o stacji': 'Station information',
+  'Szczegóły stacji': 'Station details',
+  'Wstecz': 'Back',
+  'Strumień': 'Stream',
+  'Język': 'Language',
+  'Lokalizacja': 'Location',
+  'Strona internetowa': 'Website',
+  'Strona stacji': 'Station website',
+  'Brak danych': 'No data',
+  'radio internetowe': 'internet radio',
+  'Główna nawigacja': 'Main navigation',
+  'Ponów': 'Retry',
+  'Nie udało się otworzyć strony.': 'Could not open the website.',
+  'Nie udało się pobrać katalogu stacji. Spróbuj ponownie.':
+      'Could not load the station catalogue. Please try again.',
+  'Nie udało się odświeżyć katalogu. Wyświetlamy zapisaną listę stacji. Odtwarzanie może nadal działać.': 'Could not refresh the catalogue. Showing saved stations. Playback may still work.',
+  'Nie udało się zapisać ulubionych.': 'Could not save favorites.',
+  'Nie udało się uruchomić radia.': 'Could not start the radio.',
+  'Zamknij aplikację i spróbuj ponownie.': 'Close the app and try again.',
+};

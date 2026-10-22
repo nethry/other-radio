@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../audio/radio_audio_handler.dart';
 import '../core/providers.dart';
+import '../core/localization.dart';
 import '../core/theme.dart';
 import '../core/ui/controls.dart';
 import '../core/ui/motion.dart';
@@ -55,7 +56,7 @@ class LiveLabel extends StatelessWidget {
         SizedBox(width: size < 11 ? 6 : 8),
         Flexible(
           child: Text(
-            '$prefix${statusLabel(state)}',
+            '${context.tr(prefix)}${context.tr(statusLabel(state))}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -153,7 +154,7 @@ Future<void> openLink(BuildContext context, Uri uri) async {
   }
   if (!opened) {
     messenger?.showSnackBar(
-      const SnackBar(content: Text('Nie udało się otworzyć strony.')),
+      const SnackBar(content: TrText('Nie udało się otworzyć strony.')),
     );
   }
 }
@@ -189,9 +190,9 @@ class EmptyState extends StatelessWidget {
             child: Icon(icon, size: 26, color: rc.mu),
           ),
           const SizedBox(height: 16),
-          Text(title, textAlign: TextAlign.center, style: heading(18)),
+          TrText(title, textAlign: TextAlign.center, style: heading(18)),
           const SizedBox(height: 8),
-          Text(
+          TrText(
             message,
             textAlign: TextAlign.center,
             style: TextStyle(color: rc.mu, fontSize: 14, height: 1.5),
@@ -230,14 +231,14 @@ class CatalogueStatus extends ConsumerWidget {
           Icon(Icons.info_outline_rounded, size: 18, color: rc.mu),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
+            child: TrText(
               catalogue.error!,
               style: TextStyle(color: rc.tx2, fontSize: 13, height: 1.4),
             ),
           ),
           TextButton(
             onPressed: catalogue.loading ? null : catalogue.refresh,
-            child: const Text('Ponów'),
+            child: const TrText('Ponów'),
           ),
         ],
       ),

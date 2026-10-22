@@ -11,7 +11,9 @@ String plural(int n, String one, String few, String many) {
   return '$n $word';
 }
 
-String stationCount(int n) => plural(n, 'stacja', 'stacje', 'stacji');
+String stationCount(int n, {String language = 'pl'}) => language == 'en'
+    ? '$n ${n == 1 ? 'station' : 'stations'}'
+    : plural(n, 'stacja', 'stacje', 'stacji');
 
 /// `45 min`, `1 godz. 20 min`, `< 1 min`.
 String listenDuration(Duration d) {
@@ -41,13 +43,28 @@ const _months = [
 ];
 
 /// `Dzisiaj`, `Wczoraj` or `12 października`.
-String dayLabel(DateTime day, DateTime now) {
+String dayLabel(DateTime day, DateTime now, {String language = 'pl'}) {
   final a = DateTime(day.year, day.month, day.day);
   final b = DateTime(now.year, now.month, now.day);
   final diff = b.difference(a).inDays;
-  if (diff == 0) return 'Dzisiaj';
-  if (diff == 1) return 'Wczoraj';
-  final label = '${day.day} ${_months[day.month - 1]}';
+  if (diff == 0) return language == 'en' ? 'Today' : 'Dzisiaj';
+  if (diff == 1) return language == 'en' ? 'Yesterday' : 'Wczoraj';
+  const englishMonths = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+  final label =
+      '${day.day} ${(language == 'en' ? englishMonths : _months)[day.month - 1]}';
   return day.year == now.year ? label : '$label ${day.year}';
 }
 
@@ -104,15 +121,23 @@ int paletteIndex(String id) =>
     id.codeUnits.fold(0, (a, b) => (a * 31 + b) & 0x7fffffff) % 8;
 
 /// First genre tags joined with ` · `.
-String tagLine(Station s, {int count = 2}) {
+String tagLine(Station s, {int count = 2, String language = 'pl'}) {
   final tags = s.genres.take(count).join(' · ');
-  return tags.isEmpty ? 'radio internetowe' : tags;
+  return tags.isEmpty
+      ? (language == 'en' ? 'internet radio' : 'radio internetowe')
+      : tags;
 }
 
-String place(Station s) => s.state.trim().isEmpty ? 'Polska' : s.state.trim();
+String place(Station s) => [
+  s.state.trim(),
+  s.countrycode.trim(),
+].where((part) => part.isNotEmpty).join(' · ');
 
 /// `Warszawa · rock · alternatywa`.
-String subtitle(Station s) => '${place(s)} · ${tagLine(s)}';
+String subtitle(Station s, {String language = 'pl'}) => [
+  place(s),
+  tagLine(s, language: language),
+].where((s) => s.isNotEmpty).join(' · ');
 
 /// `AAC 128k` for compact lists.
 String formatShort(Station s) {

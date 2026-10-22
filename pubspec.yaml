@@ -1,7 +1,7 @@
 name: other_radio
-description: Polskie radio internetowe na Androida i Windows.
+description: Worldwide internet radio for Android and Windows, in English and Polish.
 publish_to: none
-version: 0.1.0+1
+version: 0.2.1+3
 
 environment:
   sdk: ^3.13.5
@@ -26,6 +26,7 @@ dependencies:
   json_annotation: ^4.12.0
   cached_network_image: ^4.0.4
   url_launcher: ^6.3.3
+  country_picker: ^2.0.27
 
 dev_dependencies:
   flutter_test:
