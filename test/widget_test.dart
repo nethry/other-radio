@@ -8,6 +8,7 @@ import 'package:other_radio/app.dart';
 import 'package:other_radio/audio/playback_controller.dart';
 import 'package:other_radio/audio/radio_audio_handler.dart';
 import 'package:other_radio/core/providers.dart';
+import 'package:other_radio/core/theme.dart';
 import 'package:other_radio/core/ui/controls.dart';
 import 'package:other_radio/data/local/radio_storage.dart';
 import 'package:other_radio/data/models/history_entry.dart';
@@ -16,6 +17,7 @@ import 'package:other_radio/data/repositories/station_repository.dart';
 import 'package:other_radio/features/stations/station_controller.dart';
 import 'package:other_radio/features/tv/tv_player.dart';
 import 'package:other_radio/features/tv/tv_shell.dart';
+import 'package:other_radio/features/tv/tv_theme.dart';
 import 'package:other_radio/features/tv/tv_widgets.dart';
 
 class _Repository extends Mock implements StationRepository {}
@@ -570,6 +572,44 @@ void main() {
       _noErrors(tester);
       await tester.pumpWidget(const SizedBox.shrink());
     }
+  });
+
+  testWidgets('TV settings switch theme and accent with the remote', (
+    tester,
+  ) async {
+    final container = await pumpTv(tester);
+    final settings = container.read(settingsProvider);
+    // A TV that never chose an accent keeps the canvas teal.
+    expect(settings.accent, RadioAccent.teal);
+    TvColors palette() => TvColors.of(tester.element(find.byType(TvShell)));
+    expect(palette().dark, isTrue);
+
+    await back(tester); // hero → rail
+    for (var i = 0; i < 4; i++) {
+      await press(tester, LogicalKeyboardKey.arrowDown);
+    }
+    expect(_focusedLabel(), 'rail Ustawienia');
+    await press(tester, LogicalKeyboardKey.select);
+    expect(settings.themeMode, ThemeMode.dark);
+    // "Wygląd i animacje" → its first option, "Motyw".
+    await press(tester, LogicalKeyboardKey.arrowDown);
+    await press(tester, LogicalKeyboardKey.arrowRight);
+    await press(tester, LogicalKeyboardKey.select);
+    expect(find.text('Light'), findsOneWidget);
+    await press(tester, LogicalKeyboardKey.arrowDown);
+    await press(tester, LogicalKeyboardKey.select);
+    expect(settings.themeMode, ThemeMode.light);
+    expect(palette().dark, isFalse);
+
+    // "Kolor akcentu": the dialog opens on the current accent.
+    await press(tester, LogicalKeyboardKey.arrowDown);
+    await press(tester, LogicalKeyboardKey.select);
+    expect(find.text('Lime'), findsOneWidget);
+    await press(tester, LogicalKeyboardKey.arrowDown);
+    await press(tester, LogicalKeyboardKey.select);
+    expect(settings.accent, RadioAccent.lime);
+    expect(palette().accent, RadioAccent.lime.ink);
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 
   testWidgets('TV all-stations grid reaches rows that were not built yet', (

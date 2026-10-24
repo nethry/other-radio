@@ -84,9 +84,9 @@ class TvDialog extends StatelessWidget {
       ),
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: TvColors.surface2,
+        color: context.tv.surface2,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: TvColors.outline2),
+        border: Border.all(color: context.tv.outline2),
         boxShadow: const [
           BoxShadow(
             color: Color(0x99000000),
@@ -110,7 +110,7 @@ class TvDialog extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               message!,
-              style: tvBody(13, color: TvColors.text2, height: 1.4),
+              style: tvBody(13, color: context.tv.text2, height: 1.4),
             ),
           ],
           if (body != null) ...[const SizedBox(height: 12), body!],
@@ -166,9 +166,9 @@ Future<T?> showTvMenu<T>(
         width: 310,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: TvColors.surface2,
+          color: context.tv.surface2,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: TvColors.outline2),
+          border: Border.all(color: context.tv.outline2),
           boxShadow: const [
             BoxShadow(
               color: Color(0x99000000),
@@ -204,7 +204,7 @@ Future<T?> showTvMenu<T>(
                             place(station),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: tvBody(10, color: TvColors.muted),
+                            style: tvBody(10, color: context.tv.muted),
                           ),
                         ],
                       ),
@@ -246,10 +246,10 @@ class _MenuRow<T> extends StatelessWidget {
     semanticLabel: item.label,
     builder: (context, focused, pressed) {
       final fg = item.danger
-          ? (focused ? TvColors.onError : TvColors.error)
+          ? (focused ? context.tv.onError : context.tv.error)
           : focused
-          ? TvColors.bg
-          : TvColors.text2;
+          ? context.tv.bg
+          : context.tv.text2;
       return TvScale(
         focused: focused,
         pressed: pressed,
@@ -260,7 +260,7 @@ class _MenuRow<T> extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
             color: focused
-                ? (item.danger ? TvColors.error : TvColors.text)
+                ? (item.danger ? context.tv.error : context.tv.text)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),
@@ -287,12 +287,13 @@ class _MenuRow<T> extends StatelessWidget {
 typedef TvChoice<T> = ({T value, String label});
 
 /// Choice dialog for settings: a focusable list with the current value
-/// focused. Labels are already localized.
+/// focused. Labels are already localized; [swatch] adds a colour dot.
 Future<T?> showTvChoice<T>(
   BuildContext context, {
   required String title,
   required List<TvChoice<T>> options,
   required T selected,
+  Color Function(T value)? swatch,
 }) {
   const extent = 46.0;
   final index = options.indexWhere((o) => o.value == selected);
@@ -322,11 +323,27 @@ Future<T?> showTvChoice<T>(
                   duration: TvMotion.of(context, TvMotion.focus),
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   decoration: BoxDecoration(
-                    color: focused ? TvColors.text : Colors.transparent,
+                    color: focused ? context.tv.text : Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
+                      if (swatch != null) ...[
+                        Container(
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: swatch(option.value),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: focused
+                                  ? context.tv.bg
+                                  : context.tv.outline2,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                      ],
                       Expanded(
                         child: Text(
                           option.label,
@@ -335,10 +352,10 @@ Future<T?> showTvChoice<T>(
                           style: tvBody(
                             14,
                             color: focused
-                                ? TvColors.bg
+                                ? context.tv.bg
                                 : current
-                                ? TvColors.accent
-                                : TvColors.text2,
+                                ? context.tv.accent
+                                : context.tv.text2,
                           ),
                         ),
                       ),
@@ -346,7 +363,7 @@ Future<T?> showTvChoice<T>(
                         Icon(
                           Icons.check_rounded,
                           size: 18,
-                          color: focused ? TvColors.bg : TvColors.accent,
+                          color: focused ? context.tv.bg : context.tv.accent,
                         ),
                     ],
                   ),
@@ -502,18 +519,21 @@ Future<void> showTvStationDetails(BuildContext context, Station station) {
                     width: 130,
                     child: Text(
                       context.tr(label),
-                      style: tvBody(12, color: TvColors.muted),
+                      style: tvBody(12, color: context.tv.muted),
                     ),
                   ),
                   Expanded(
-                    child: Text(value, style: tvBody(12, color: TvColors.text)),
+                    child: Text(
+                      value,
+                      style: tvBody(12, color: context.tv.text),
+                    ),
                   ),
                 ],
               ),
             ),
           Text(
             context.tr('Dane stacji: Radio Browser'),
-            style: tvBody(10, color: TvColors.muted),
+            style: tvBody(10, color: context.tv.muted),
           ),
         ],
       ),
@@ -594,9 +614,9 @@ class _TvToastHostState extends State<TvToastHost> {
                     vertical: 11,
                   ),
                   decoration: BoxDecoration(
-                    color: TvColors.surface3,
+                    color: context.tv.surface3,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: TvColors.outline2),
+                    border: Border.all(color: context.tv.outline2),
                     boxShadow: const [
                       BoxShadow(
                         color: Color(0x80000000),
@@ -608,10 +628,10 @@ class _TvToastHostState extends State<TvToastHost> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.graphic_eq_rounded,
                         size: 14,
-                        color: TvColors.accent,
+                        color: context.tv.accent,
                       ),
                       const SizedBox(width: 8),
                       Flexible(
@@ -619,8 +639,10 @@ class _TvToastHostState extends State<TvToastHost> {
                           _message!,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: tvBody(12)
-                              .copyWith(decoration: TextDecoration.none),
+                          style: tvBody(
+                            12,
+                            color: context.tv.text,
+                          ).copyWith(decoration: TextDecoration.none),
                         ),
                       ),
                     ],

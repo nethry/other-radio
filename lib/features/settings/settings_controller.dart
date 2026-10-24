@@ -4,15 +4,20 @@ import '../../core/theme.dart';
 import '../../data/local/radio_storage.dart';
 
 class SettingsController extends ChangeNotifier {
-  SettingsController(this.storage)
-    : themeMode = ThemeMode.values.firstWhere(
-        (m) => m.name == storage.themeMode,
-        orElse: () => ThemeMode.dark,
-      ),
-      accent = RadioAccent.byName(storage.accent),
-      reduceMotion = storage.reduceMotion,
-      language = storage.language,
-      defaultCountry = storage.defaultCountry;
+  /// [defaultAccent] applies until the user picks one (TV: the canvas teal).
+  SettingsController(
+    this.storage, {
+    RadioAccent defaultAccent = RadioAccent.coral,
+  }) : themeMode = ThemeMode.values.firstWhere(
+         (m) => m.name == storage.themeMode,
+         orElse: () => ThemeMode.dark,
+       ),
+       accent = storage.accent == null
+           ? defaultAccent
+           : RadioAccent.byName(storage.accent),
+       reduceMotion = storage.reduceMotion,
+       language = storage.language,
+       defaultCountry = storage.defaultCountry;
 
   final RadioStorage storage;
   ThemeMode themeMode;

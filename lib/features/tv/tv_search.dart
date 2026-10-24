@@ -107,7 +107,7 @@ class TvSearch extends ConsumerWidget {
                     const SizedBox(height: 10),
                     Text(
                       context.tr('Ostatnio wyszukiwane').toUpperCase(),
-                      style: tvLabel(size: 9),
+                      style: tvLabel(context.tv.muted, size: 9),
                     ),
                     const SizedBox(height: 8),
                     Wrap(
@@ -146,7 +146,7 @@ class TvSearch extends ConsumerWidget {
                       children: [
                         Text(
                           context.tr('Podpowiedzi').toUpperCase(),
-                          style: tvLabel(size: 9),
+                          style: tvLabel(context.tv.muted, size: 9),
                         ),
                         const SizedBox(height: 8),
                         Wrap(
@@ -191,7 +191,7 @@ class TvSearch extends ConsumerWidget {
                                 ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: tvBody(11, color: TvColors.muted),
+                          style: tvBody(11, color: context.tv.muted),
                         ),
                       ),
                     ],
@@ -216,7 +216,7 @@ class TvSearch extends ConsumerWidget {
                               const SizedBox(height: 4),
                               Text(
                                 context.tr('Zmień wyszukiwanie lub filtry.'),
-                                style: tvBody(12, color: TvColors.muted),
+                                style: tvBody(12, color: context.tv.muted),
                               ),
                             ],
                           ),
@@ -282,13 +282,13 @@ class _QueryBox extends StatelessWidget {
       height: 44,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: TvColors.surface2,
+        color: context.tv.surface2,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: TvColors.accent, width: 1.5),
+        border: Border.all(color: context.tv.accent, width: 1.5),
       ),
       child: Row(
         children: [
-          const Icon(Icons.search_rounded, size: 20, color: TvColors.muted),
+          Icon(Icons.search_rounded, size: 20, color: context.tv.muted),
           const SizedBox(width: 10),
           Flexible(
             child: Text(
@@ -298,7 +298,7 @@ class _QueryBox extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: query.isEmpty
-                  ? tvBody(14, color: TvColors.muted)
+                  ? tvBody(14, color: context.tv.muted)
                   : tvBody(20),
             ),
           ),
@@ -306,7 +306,7 @@ class _QueryBox extends StatelessWidget {
             margin: const EdgeInsets.only(left: 2),
             width: 1.5,
             height: 22,
-            color: TvColors.accent,
+            color: context.tv.accent,
           ),
         ],
       ),
@@ -355,10 +355,10 @@ class _Key extends StatelessWidget {
     semanticLabel: translate || icon != null ? label : null,
     builder: (context, focused, pressed) {
       final fg = focused
-          ? TvColors.bg
+          ? context.tv.bg
           : onTap == null
-          ? TvColors.outline2
-          : TvColors.text2;
+          ? context.tv.outline2
+          : context.tv.text2;
       return TvScale(
         focused: focused,
         pressed: pressed,
@@ -369,9 +369,9 @@ class _Key extends StatelessWidget {
           height: 36,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: focused ? TvColors.text : TvColors.surface2,
+            color: focused ? context.tv.text : context.tv.surface2,
             borderRadius: BorderRadius.circular(11),
-            boxShadow: focused ? tvRing(tight: true) : const [],
+            boxShadow: focused ? tvRing(context, tight: true) : const [],
           ),
           child: icon != null
               ? Icon(icon, size: 17, color: fg)
@@ -395,7 +395,7 @@ class _Highlighted extends StatelessWidget {
   Widget build(BuildContext context) {
     final at = text.toLowerCase().indexOf(query);
     if (at < 0) return Text(text);
-    final focused = DefaultTextStyle.of(context).style.color == TvColors.bg;
+    final focused = DefaultTextStyle.of(context).style.color == context.tv.bg;
     return Text.rich(
       TextSpan(
         children: [
@@ -404,7 +404,7 @@ class _Highlighted extends StatelessWidget {
             text: text.substring(at, at + query.length),
             style: TextStyle(
               fontWeight: FontWeight.w800,
-              color: focused ? TvColors.bg : TvColors.accent,
+              color: focused ? context.tv.bg : context.tv.accent,
             ),
           ),
           TextSpan(text: text.substring(at + query.length)),

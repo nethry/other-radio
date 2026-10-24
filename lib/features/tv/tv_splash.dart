@@ -211,6 +211,9 @@ class _TvSplashState extends ConsumerState<TvSplash>
       _ => '${countryLabel(context, country)} · ${context.tr('na żywo')}',
     };
     final message = context.tr(_loaded ? 'Gotowe' : 'Wczytywanie stacji…');
+    // The stage stays dark in either theme (it continues the native launch
+    // window); only the accent follows the setting.
+    final palette = TvColors.build(dark: true, accent: context.tv.accentChoice);
     return Semantics(
       label: 'OtherRadio',
       value: _loader ? message : null,
@@ -218,6 +221,7 @@ class _TvSplashState extends ConsumerState<TvSplash>
       child: AnimatedBuilder(
         animation: Listenable.merge([_reveal, _loop, _exit, _dust]),
         builder: (context, _) => _Frame(
+          c: palette,
           seconds: _reveal.value * _revealSeconds,
           loop: _loop.isAnimating ? _loop.value : null,
           dust: _calm ? null : _dust.value,
@@ -236,6 +240,7 @@ class _TvSplashState extends ConsumerState<TvSplash>
 /// One frame of the splash, a pure function of the timeline.
 class _Frame extends StatelessWidget {
   const _Frame({
+    required this.c,
     required this.seconds,
     required this.loop,
     required this.dust,
@@ -246,6 +251,9 @@ class _Frame extends StatelessWidget {
     required this.tagline,
     required this.message,
   });
+
+  /// Dark stage colours with the chosen accent.
+  final TvColors c;
   final double seconds;
   final double? loop;
   final double? dust;
@@ -281,7 +289,7 @@ class _Frame extends StatelessWidget {
     final backdrop = calm ? exit : const Interval(0.35, 0.9).transform(exit);
     final background = Color.lerp(
       TvSplash.stage,
-      TvColors.bg,
+      context.tv.bg,
       const Interval(0, 0.5).transform(exit),
     )!;
 
@@ -296,7 +304,7 @@ class _Frame extends StatelessWidget {
       weight: FontWeight.w700,
       tracking: -0.035,
       height: 1,
-      color: TvColors.text,
+      color: c.text,
     );
     final wordWidth = (TextPainter(
       text: TextSpan(
@@ -353,7 +361,7 @@ class _Frame extends StatelessWidget {
               textAlign: TextAlign.center,
               style: tvBody(
                 13,
-                color: TvColors.text2,
+                color: c.text2,
               ).copyWith(letterSpacing: 13 * (0.5 - 0.18 * tagIn)),
             ),
           ),
@@ -363,6 +371,7 @@ class _Frame extends StatelessWidget {
           opacity: loader ? 1 : 0,
           duration: Duration(milliseconds: calm ? 0 : 300),
           child: _Loader(
+            c: c,
             calm: calm,
             active: loader,
             loaded: loaded,
@@ -409,15 +418,15 @@ class _Frame extends StatelessWidget {
               opacity: (glowOpacity * (1 - out)).clamp(0.0, 1.0),
               child: Transform.scale(
                 scale: glowScale,
-                child: const SizedBox(
+                child: SizedBox(
                   width: 550,
                   height: 380,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: RadialGradient(
                         colors: [
-                          Color(0x6B5EE6CF),
-                          Color(0x242FBFA9),
+                          c.accentFill.withValues(alpha: 0.42),
+                          c.accentDeep.withValues(alpha: 0.14),
                           Color(0x000A0E13),
                         ],
                         stops: [0, 0.55, 1],
@@ -431,13 +440,13 @@ class _Frame extends StatelessWidget {
           if (dust != null && exit < 1)
             Opacity(
               opacity: 1 - out,
-              child: CustomPaint(painter: _Dust(dust!)),
+              child: CustomPaint(painter: _Dust(dust!, c.accent)),
             ),
           if (!calm) _horizon(size),
           Center(child: stage),
           Opacity(
             opacity: 1 - backdrop,
-            child: const DecoratedBox(
+            child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: RadialGradient(
                   radius: 1.1,
@@ -488,9 +497,13 @@ class _Frame extends StatelessWidget {
           child: Container(
             width: math.min(750, size.width * 0.8),
             height: 1,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0x005EE6CF), TvColors.accent, Color(0x005EE6CF)],
+                colors: [
+                  c.accent.withValues(alpha: 0),
+                  c.accent,
+                  c.accent.withValues(alpha: 0),
+                ],
               ),
             ),
           ),
@@ -550,7 +563,7 @@ class _Frame extends StatelessWidget {
                     height: 110,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: TvColors.accent),
+                      border: Border.all(color: c.accent),
                     ),
                   ),
                 ),
@@ -580,10 +593,13 @@ class _Frame extends StatelessWidget {
                       width: _barWidth,
                       height: height,
                       decoration: BoxDecoration(
-                        color: TvColors.accent,
+                        color: c.accent,
                         borderRadius: BorderRadius.circular(_barWidth / 2),
-                        boxShadow: const [
-                          BoxShadow(color: Color(0x995EE6CF), blurRadius: 12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: c.accent.withValues(alpha: 0.6),
+                            blurRadius: 12,
+                          ),
                         ],
                       ),
                     ),
@@ -612,7 +628,7 @@ class _Frame extends StatelessWidget {
               'radio',
               style: style.copyWith(
                 fontWeight: FontWeight.w400,
-                color: TvColors.accent,
+                color: c.accent,
                 letterSpacing: _wordSize * (0.18 - 0.215 * radioIn),
               ),
             ),
@@ -640,11 +656,13 @@ class _Frame extends StatelessWidget {
 
 class _Loader extends StatelessWidget {
   const _Loader({
+    required this.c,
     required this.calm,
     required this.active,
     required this.loaded,
     required this.message,
   });
+  final TvColors c;
   final bool calm;
   final bool active;
   final bool loaded;
@@ -658,7 +676,7 @@ class _Loader extends StatelessWidget {
         width: 180,
         height: 2,
         decoration: BoxDecoration(
-          color: const Color(0x295EE6CF),
+          color: c.accent.withValues(alpha: 0.16),
           borderRadius: BorderRadius.circular(1),
         ),
         alignment: Alignment.centerLeft,
@@ -684,10 +702,10 @@ class _Loader extends StatelessWidget {
           builder: (context, fill, _) => FractionallySizedBox(
             widthFactor: fill,
             heightFactor: 1,
-            child: const DecoratedBox(
+            child: DecoratedBox(
               decoration: BoxDecoration(
-                color: TvColors.accent,
-                boxShadow: [BoxShadow(color: TvColors.accent, blurRadius: 6)],
+                color: c.accent,
+                boxShadow: [BoxShadow(color: c.accent, blurRadius: 6)],
               ),
             ),
           ),
@@ -698,7 +716,7 @@ class _Loader extends StatelessWidget {
         message,
         style: tvBody(
           11,
-          color: loaded ? TvColors.accent : TvColors.muted,
+          color: loaded ? c.accent : c.muted,
           weight: FontWeight.w500,
         ),
       ),
@@ -729,12 +747,13 @@ class _Slide extends GradientTransform {
 
 /// Slow teal dust rising across the stage.
 class _Dust extends CustomPainter {
-  _Dust(this.t);
+  _Dust(this.t, this.color);
   final double t;
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = TvColors.accent;
+    final paint = Paint()..color = color;
     for (var k = 0; k < 18; k++) {
       final x = ((k * 113) % 1880 + 20) / 1920 * size.width;
       final y = (320 + (k * 197) % 640) / 1080 * size.height;
@@ -748,11 +767,11 @@ class _Dust extends CustomPainter {
           : p > 0.8
           ? (1 - p) / 0.2
           : 1.0;
-      paint.color = TvColors.accent.withValues(alpha: opacity * fade);
+      paint.color = color.withValues(alpha: opacity * fade);
       canvas.drawCircle(Offset(x, y - 110 * p), radius, paint);
     }
   }
 
   @override
-  bool shouldRepaint(_Dust old) => old.t != t;
+  bool shouldRepaint(_Dust old) => old.t != t || old.color != color;
 }
