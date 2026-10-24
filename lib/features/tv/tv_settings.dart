@@ -48,6 +48,12 @@ class _TvSettingsState extends ConsumerState<TvSettings> {
   );
   _Category _selected = _Category.locale;
 
+  static const _themeLabels = {
+    ThemeMode.dark: 'Ciemny',
+    ThemeMode.light: 'Jasny',
+    ThemeMode.system: 'Systemowy',
+  };
+
   @override
   void dispose() {
     for (final node in _categories.values) {
@@ -113,6 +119,43 @@ class _TvSettingsState extends ConsumerState<TvSettings> {
       _Category.motion => [
         _OptionRow(
           focusNode: _firstOption,
+          title: 'Motyw',
+          subtitle: 'Systemowy dopasuje się do urządzenia',
+          value: _themeLabels[settings.themeMode],
+          onTap: () async {
+            final value = await showTvChoice<ThemeMode>(
+              context,
+              title: 'Motyw',
+              selected: settings.themeMode,
+              options: [
+                for (final MapEntry(:key, :value) in _themeLabels.entries)
+                  (value: key, label: context.tr(value)),
+              ],
+            );
+            if (value != null) settings.setThemeMode(value);
+          },
+        ),
+        _OptionRow(
+          title: 'Kolor akcentu',
+          subtitle: 'Przyciski, korektor, wskaźniki',
+          value: settings.accent.label,
+          onTap: () async {
+            final dark = context.tv.dark;
+            final value = await showTvChoice<RadioAccent>(
+              context,
+              title: 'Kolor akcentu',
+              selected: settings.accent,
+              options: [
+                for (final accent in RadioAccent.values)
+                  (value: accent, label: context.tr(accent.label)),
+              ],
+              swatch: (accent) =>
+                  TvColors.build(dark: dark, accent: accent).accentFill,
+            );
+            if (value != null) settings.setAccent(value);
+          },
+        ),
+        _OptionRow(
           title: 'Ogranicz animacje',
           subtitle: 'Statyczny korektor, bez wejść list',
           toggle: settings.reduceMotion,
@@ -202,7 +245,7 @@ class _TvSettingsState extends ConsumerState<TvSettings> {
                                 padding: const EdgeInsets.fromLTRB(18, 0, 0, 8),
                                 child: Text(
                                   context.tr(_selected.label).toUpperCase(),
-                                  style: tvLabel(size: 9),
+                                  style: tvLabel(context.tv.muted, size: 9),
                                 ),
                               ),
                               if (_selected == _Category.about)
@@ -231,7 +274,7 @@ class _TvSettingsState extends ConsumerState<TvSettings> {
                   const SizedBox(width: 8),
                   Text(
                     '$appVersion · radio-browser.info',
-                    style: monoStyle(9, color: TvColors.muted),
+                    style: monoStyle(9, color: context.tv.muted),
                   ),
                 ],
               ),
@@ -285,10 +328,10 @@ class _CategoryRow extends StatelessWidget {
       },
       builder: (context, focused, pressed) {
         final color = focused
-            ? TvColors.text
+            ? context.tv.text
             : selected
-            ? TvColors.accent
-            : TvColors.text2;
+            ? context.tv.accent
+            : context.tv.text2;
         return TvScale(
           focused: focused,
           pressed: pressed,
@@ -300,11 +343,11 @@ class _CategoryRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 18),
             decoration: BoxDecoration(
               color: focused || selected
-                  ? (focused ? TvColors.surface3 : TvColors.surface2)
+                  ? (focused ? context.tv.surface3 : context.tv.surface2)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(14),
               boxShadow: focused
-                  ? const [BoxShadow(color: TvColors.accent, spreadRadius: 2)]
+                  ? [BoxShadow(color: context.tv.accent, spreadRadius: 2)]
                   : const [],
             ),
             child: Row(
@@ -365,10 +408,10 @@ class _OptionRow extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 56),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
         decoration: BoxDecoration(
-          color: focused ? TvColors.surface3 : Colors.transparent,
+          color: focused ? context.tv.surface3 : Colors.transparent,
           borderRadius: BorderRadius.circular(14),
           boxShadow: focused
-              ? const [BoxShadow(color: TvColors.accent, spreadRadius: 2)]
+              ? [BoxShadow(color: context.tv.accent, spreadRadius: 2)]
               : const [],
         ),
         child: Row(
@@ -381,7 +424,7 @@ class _OptionRow extends StatelessWidget {
                     context.tr(title),
                     style: tvBody(
                       14,
-                      color: focused ? TvColors.text : TvColors.text2,
+                      color: focused ? context.tv.text : context.tv.text2,
                     ),
                   ),
                   if (subtitle != null)
@@ -391,7 +434,7 @@ class _OptionRow extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: tvBody(
                         10,
-                        color: TvColors.muted,
+                        color: context.tv.muted,
                         weight: FontWeight.w500,
                       ),
                     ),
@@ -404,12 +447,12 @@ class _OptionRow extends StatelessWidget {
             else if (value != null) ...[
               Text(
                 context.tr(value!),
-                style: tvBody(12, color: TvColors.muted),
+                style: tvBody(12, color: context.tv.muted),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
                 size: 16,
-                color: TvColors.muted,
+                color: context.tv.muted,
               ),
             ],
           ],
@@ -442,7 +485,7 @@ class _About extends StatelessWidget {
                   width: 120,
                   child: Text(
                     context.tr(label),
-                    style: tvBody(12, color: TvColors.muted),
+                    style: tvBody(12, color: context.tv.muted),
                   ),
                 ),
                 Text(value, style: tvBody(12)),
@@ -454,7 +497,7 @@ class _About extends StatelessWidget {
           context.tr(
             'Katalog stacji: Radio Browser. Transmisje i znaki towarowe należą do nadawców. Aplikacja nie hostuje strumieni audio.',
           ),
-          style: tvBody(11, color: TvColors.muted, height: 1.5),
+          style: tvBody(11, color: context.tv.muted, height: 1.5),
         ),
       ],
     ),

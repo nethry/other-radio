@@ -143,7 +143,7 @@ class _TvDiscoverState extends ConsumerState<TvDiscover> {
     } else if (stations.isEmpty) {
       body = TvEmptyState(
         icon: Icons.cloud_off_rounded,
-        color: TvColors.warning,
+        color: context.tv.warning,
         title: 'Nie znaleziono stacji',
         message:
             catalogue.error ??
@@ -287,7 +287,7 @@ class _Section extends StatelessWidget {
                     note!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: tvBody(11, color: TvColors.muted),
+                    style: tvBody(11, color: context.tv.muted),
                   ),
                 ),
               ],
@@ -334,14 +334,14 @@ class _Hero extends ConsumerWidget {
         height: 210,
         clipBehavior: Clip.hardEdge,
         decoration: BoxDecoration(
-          color: TvColors.heroSurface,
+          color: context.tv.heroSurface,
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: TvColors.heroOutline),
+          border: Border.all(color: context.tv.heroOutline),
         ),
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            const Positioned(
+            Positioned(
               right: -30,
               top: -20,
               width: 260,
@@ -349,7 +349,10 @@ class _Hero extends ConsumerWidget {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: RadialGradient(
-                    colors: [Color(0x2E5EE6CF), Color(0x005EE6CF)],
+                    colors: [
+                      context.tv.accentFill.withValues(alpha: 0.18),
+                      context.tv.accentFill.withValues(alpha: 0),
+                    ],
                   ),
                 ),
               ),
@@ -365,7 +368,7 @@ class _Hero extends ConsumerWidget {
                       children: [
                         Text(
                           context.tr('Polecana stacja').toUpperCase(),
-                          style: tvLabel(color: TvColors.accent),
+                          style: tvLabel(context.tv.accent),
                         ),
                         const SizedBox(height: 9),
                         Text(
@@ -379,7 +382,7 @@ class _Hero extends ConsumerWidget {
                           subtitle(station, language: context.languageCode),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: tvBody(13, color: TvColors.text2),
+                          style: tvBody(13, color: context.tv.text2),
                         ),
                         const SizedBox(height: 18),
                         Wrap(
@@ -451,14 +454,14 @@ class _EmptyFavorites extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: TvColors.outline2),
+        border: Border.all(color: context.tv.outline2),
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.favorite_border_rounded,
             size: 24,
-            color: TvColors.accent,
+            color: context.tv.accent,
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -466,7 +469,7 @@ class _EmptyFavorites extends StatelessWidget {
               context.tr(
                 'Brak ulubionych. Przytrzymaj OK na dowolnej stacji i wybierz „Dodaj do ulubionych”.',
               ),
-              style: tvBody(13, color: TvColors.muted, height: 1.4),
+              style: tvBody(13, color: context.tv.muted, height: 1.4),
             ),
           ),
         ],
@@ -500,12 +503,12 @@ class _GenreTile extends StatelessWidget {
         height: 75,
         padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
         decoration: BoxDecoration(
-          color: TvColors.surface2,
+          color: context.tv.surface2,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: focused ? Colors.transparent : TvColors.outline,
+            color: focused ? Colors.transparent : context.tv.outline,
           ),
-          boxShadow: focused ? tvRing() : const [],
+          boxShadow: focused ? tvRing(context) : const [],
         ),
         child: Stack(
           children: [
@@ -516,7 +519,7 @@ class _GenreTile extends StatelessWidget {
                     ? Icons.grid_view_rounded
                     : Icons.graphic_eq_rounded,
                 size: 18,
-                color: TvColors.accent,
+                color: context.tv.accent,
               ),
             ),
             Align(
@@ -628,7 +631,7 @@ class _TvStationsScreen extends ConsumerWidget {
     final stations = catalogue.stations.where(genre.matches).toList();
     const source = 'Katalogu';
     return Scaffold(
-      backgroundColor: TvColors.bg,
+      backgroundColor: context.tv.bg,
       body: TvPageFrame(
         left: TvLayout.safeX - TvLayout.ringInset,
         title: genre == Genre.all ? 'Wszystkie stacje' : genre.label,

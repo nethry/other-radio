@@ -8,6 +8,7 @@ import '../data/repositories/station_repository.dart';
 import '../features/history/history_controller.dart';
 import '../features/settings/settings_controller.dart';
 import '../features/stations/station_controller.dart';
+import 'theme.dart';
 
 final storageProvider = Provider<RadioStorage>(
   (ref) => throw UnimplementedError('Override at startup'),
@@ -29,7 +30,12 @@ final playbackProvider = ChangeNotifierProvider<PlaybackController>(
   ),
 );
 final settingsProvider = ChangeNotifierProvider<SettingsController>(
-  (ref) => SettingsController(ref.watch(storageProvider)),
+  (ref) => SettingsController(
+    ref.watch(storageProvider),
+    defaultAccent: ref.watch(televisionProvider)
+        ? RadioAccent.teal
+        : RadioAccent.coral,
+  ),
 );
 final historyProvider = ChangeNotifierProvider<HistoryController>((ref) {
   final history = HistoryController(ref.watch(storageProvider));

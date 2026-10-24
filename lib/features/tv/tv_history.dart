@@ -85,7 +85,10 @@ class TvHistory extends ConsumerWidget {
                   for (final group in groups) ...[
                     Padding(
                       padding: const EdgeInsets.fromLTRB(18, 10, 0, 4),
-                      child: Text(group.label.toUpperCase(), style: tvLabel()),
+                      child: Text(
+                        group.label.toUpperCase(),
+                        style: tvLabel(context.tv.muted),
+                      ),
                     ),
                     for (final entry in group.entries)
                       _HistoryRow(
@@ -151,12 +154,10 @@ class _HistoryRow extends ConsumerWidget {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: focused ? TvColors.surface3 : Colors.transparent,
+                    color: focused ? context.tv.surface3 : Colors.transparent,
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: focused
-                        ? const [
-                            BoxShadow(color: TvColors.accent, spreadRadius: 2),
-                          ]
+                        ? [BoxShadow(color: context.tv.accent, spreadRadius: 2)]
                         : const [],
                   ),
                   child: Row(
@@ -174,14 +175,16 @@ class _HistoryRow extends ConsumerWidget {
                               style: tvBody(
                                 15,
                                 weight: FontWeight.w700,
-                                color: focused ? TvColors.text : TvColors.text2,
+                                color: focused
+                                    ? context.tv.text
+                                    : context.tv.text2,
                               ),
                             ),
                             Text(
                               subtitle(station, language: language),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: tvBody(10, color: TvColors.muted),
+                              style: tvBody(10, color: context.tv.muted),
                             ),
                           ],
                         ),
@@ -192,21 +195,21 @@ class _HistoryRow extends ConsumerWidget {
                           height: 22,
                           padding: const EdgeInsets.symmetric(horizontal: 9),
                           decoration: BoxDecoration(
-                            color: TvColors.accentSoft,
+                            color: context.tv.accentSoft,
                             borderRadius: BorderRadius.circular(11),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Eq(color: TvColors.accent, height: 9),
+                              Eq(color: context.tv.accent, height: 9),
                               const SizedBox(width: 6),
                               Text(
                                 context.tr('słuchasz teraz').toUpperCase(),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 9,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 0.9,
-                                  color: TvColors.accent,
+                                  color: context.tv.accent,
                                 ),
                               ),
                             ],
@@ -219,7 +222,7 @@ class _HistoryRow extends ConsumerWidget {
                         child: Text(
                           clock(entry.start),
                           textAlign: TextAlign.right,
-                          style: monoStyle(11, color: TvColors.muted),
+                          style: monoStyle(11, color: context.tv.muted),
                         ),
                       ),
                       SizedBox(
@@ -228,7 +231,7 @@ class _HistoryRow extends ConsumerWidget {
                           context.tr(listenDuration(history.listened(entry))),
                           textAlign: TextAlign.right,
                           maxLines: 1,
-                          style: tvBody(11, color: TvColors.muted),
+                          style: tvBody(11, color: context.tv.muted),
                         ),
                       ),
                       if (focused) ...[
@@ -237,16 +240,16 @@ class _HistoryRow extends ConsumerWidget {
                           height: 30,
                           padding: const EdgeInsets.symmetric(horizontal: 14),
                           decoration: BoxDecoration(
-                            color: TvColors.accent,
+                            color: context.tv.accent,
                             borderRadius: BorderRadius.circular(15),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.play_arrow_rounded,
                                 size: 14,
-                                color: TvColors.onAccent,
+                                color: context.tv.onAccent,
                               ),
                               const SizedBox(width: 4),
                               Text(
@@ -254,7 +257,7 @@ class _HistoryRow extends ConsumerWidget {
                                 style: tvBody(
                                   11,
                                   weight: FontWeight.w700,
-                                  color: TvColors.onAccent,
+                                  color: context.tv.onAccent,
                                 ),
                               ),
                             ],

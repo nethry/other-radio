@@ -8,6 +8,7 @@ import 'core/theme.dart';
 import 'core/ui/tv_input.dart';
 import 'core/ui/app_shortcuts.dart';
 import 'features/shell/app_shell.dart';
+import 'features/tv/tv_theme.dart';
 
 class OtherRadioApp extends ConsumerStatefulWidget {
   const OtherRadioApp({super.key});
@@ -18,6 +19,23 @@ class OtherRadioApp extends ConsumerStatefulWidget {
 class _OtherRadioAppState extends ConsumerState<OtherRadioApp> {
   final _navigatorKey = GlobalKey<NavigatorState>();
 
+  /// Adds the Android TV palette (same brightness and accent) on TV.
+  ThemeData _withTv(
+    ThemeData theme, {
+    required bool television,
+    required RadioAccent accent,
+  }) => !television
+      ? theme
+      : theme.copyWith(
+          extensions: [
+            ...theme.extensions.values,
+            TvColors.build(
+              dark: theme.brightness == Brightness.dark,
+              accent: accent,
+            ),
+          ],
+        );
+
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
@@ -26,17 +44,21 @@ class _OtherRadioAppState extends ConsumerState<OtherRadioApp> {
       title: 'OtherRadio',
       navigatorKey: _navigatorKey,
       debugShowCheckedModeBanner: false,
-      theme: radioTheme(
-        brightness: Brightness.light,
+      theme: _withTv(
+        radioTheme(
+          brightness: Brightness.light,
+          accent: settings.accent,
+          calm: settings.reduceMotion,
+        ),
+        television: television,
         accent: settings.accent,
-        calm: settings.reduceMotion,
       ),
-      darkTheme: radioTheme(
+      darkTheme: _withTv(
+        radioTheme(accent: settings.accent, calm: settings.reduceMotion),
+        television: television,
         accent: settings.accent,
-        calm: settings.reduceMotion,
       ),
-      // The TV design is dark-only.
-      themeMode: television ? ThemeMode.dark : settings.themeMode,
+      themeMode: settings.themeMode,
       themeAnimationDuration: settings.reduceMotion
           ? Duration.zero
           : const Duration(milliseconds: 300),

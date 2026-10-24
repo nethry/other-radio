@@ -36,7 +36,7 @@ class TvArt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = TvColors.tiles[paletteIndex(station.id)];
+    final palette = context.tv.tiles[paletteIndex(station.id)];
     final shape = circle
         ? const CircleBorder()
         : RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius));
@@ -112,11 +112,11 @@ class _MissingArt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => CustomPaint(
-    foregroundPainter: _DashedBorder(shape),
+    foregroundPainter: _DashedBorder(shape, context.tv.outline2),
     child: ClipPath(
       clipper: ShapeBorderClipper(shape: shape),
       child: ColoredBox(
-        color: TvColors.surface2,
+        color: context.tv.surface2,
         child: Center(
           child: FittedBox(
             fit: BoxFit.scaleDown,
@@ -126,7 +126,7 @@ class _MissingArt extends StatelessWidget {
                 Icon(
                   Icons.graphic_eq_rounded,
                   size: math.max(14, size * 0.2),
-                  color: TvColors.muted,
+                  color: context.tv.muted,
                 ),
                 if (size >= 60)
                   Padding(
@@ -137,7 +137,7 @@ class _MissingArt extends StatelessWidget {
                         fontSize: size * 0.11,
                         fontWeight: FontWeight.w700,
                         letterSpacing: size * 0.002,
-                        color: TvColors.text2,
+                        color: context.tv.text2,
                       ),
                     ),
                   ),
@@ -151,14 +151,15 @@ class _MissingArt extends StatelessWidget {
 }
 
 class _DashedBorder extends CustomPainter {
-  _DashedBorder(this.shape);
+  _DashedBorder(this.shape, this.color);
   final ShapeBorder shape;
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
     final rect = (Offset.zero & size).deflate(0.5);
     final paint = Paint()
-      ..color = TvColors.outline2
+      ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     for (final metric in shape.getOuterPath(rect).computeMetrics()) {
@@ -169,7 +170,8 @@ class _DashedBorder extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_DashedBorder old) => old.shape != shape;
+  bool shouldRepaint(_DashedBorder old) =>
+      old.shape != shape || old.color != color;
 }
 
 /// Playback state of the current station as the canvas names it.
@@ -197,7 +199,7 @@ class TvSpinner extends StatelessWidget {
     child: CircularProgressIndicator(
       value: context.calm ? 0.75 : null,
       strokeWidth: stroke,
-      color: color ?? TvColors.warning,
+      color: color ?? context.tv.warning,
     ),
   );
 }
@@ -211,11 +213,15 @@ class PhaseBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, bg, fg) = switch (tvStatus(phase)) {
-      TvStatus.live => ('GRA', TvColors.accent, TvColors.onAccent),
-      TvStatus.connecting => ('ŁĄCZENIE', TvColors.warning, TvColors.onWarning),
-      TvStatus.paused => ('PAUZA', TvColors.outline2, TvColors.text),
-      TvStatus.error => ('BŁĄD', TvColors.error, TvColors.onError),
-      TvStatus.idle => ('', TvColors.outline2, TvColors.text),
+      TvStatus.live => ('GRA', context.tv.accent, context.tv.onAccent),
+      TvStatus.connecting => (
+        'ŁĄCZENIE',
+        context.tv.warning,
+        context.tv.onWarning,
+      ),
+      TvStatus.paused => ('PAUZA', context.tv.outline2, context.tv.text),
+      TvStatus.error => ('BŁĄD', context.tv.error, context.tv.onError),
+      TvStatus.idle => ('', context.tv.outline2, context.tv.text),
     };
     if (label.isEmpty) return const SizedBox.shrink();
     return Container(
@@ -303,7 +309,7 @@ class StationCard extends StatelessWidget {
                 curve: TvMotion.focusCurve,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
-                  boxShadow: focused || lifted ? tvRing() : const [],
+                  boxShadow: focused || lifted ? tvRing(context) : const [],
                 ),
                 child: Stack(
                   children: [
@@ -325,10 +331,10 @@ class StationCard extends StatelessWidget {
                             color: Color(0xB80A0E13),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.favorite_rounded,
                             size: 11,
-                            color: TvColors.accent,
+                            color: context.tv.accent,
                           ),
                         ),
                       ),
@@ -347,7 +353,7 @@ class StationCard extends StatelessWidget {
                           ),
                           child: Text(
                             '$number',
-                            style: monoStyle(10, color: TvColors.text2),
+                            style: monoStyle(10, color: context.tv.text2),
                           ),
                         ),
                       ),
@@ -362,7 +368,7 @@ class StationCard extends StatelessWidget {
             style: tvBody(
               13,
               weight: FontWeight.w700,
-              color: focused ? TvColors.text : TvColors.text2,
+              color: focused ? context.tv.text : context.tv.text2,
             ),
             child: Text(
               station.name,
@@ -375,7 +381,7 @@ class StationCard extends StatelessWidget {
             subtitle(station, language: language),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: tvBody(10, color: TvColors.muted, weight: FontWeight.w500),
+            style: tvBody(10, color: context.tv.muted, weight: FontWeight.w500),
           ),
         ],
       ),
@@ -480,17 +486,17 @@ class TvButton extends StatelessWidget {
     semanticLabel: label,
     builder: (context, focused, pressed) {
       final bg = onTap == null
-          ? TvColors.surface3.withValues(alpha: 0.4)
+          ? context.tv.surface3.withValues(alpha: 0.4)
           : primary
-          ? TvColors.accent
+          ? context.tv.accent
           : focused
-          ? TvColors.text
-          : TvColors.surface3;
+          ? context.tv.text
+          : context.tv.surface3;
       final fg = primary
-          ? TvColors.onAccent
+          ? context.tv.onAccent
           : focused
-          ? TvColors.bg
-          : TvColors.text;
+          ? context.tv.bg
+          : context.tv.text;
       return TvScale(
         focused: focused,
         pressed: pressed,
@@ -502,7 +508,7 @@ class TvButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: bg,
             borderRadius: BorderRadius.circular(height / 2),
-            boxShadow: focused ? tvRing() : const [],
+            boxShadow: focused ? tvRing(context) : const [],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -569,17 +575,17 @@ class TvIconButton extends StatelessWidget {
       onFocusChange: onFocusChange,
       builder: (context, focused, pressed) {
         final bg = big
-            ? TvColors.accent
+            ? context.tv.accent
             : focused
-            ? TvColors.text
-            : TvColors.surface3;
+            ? context.tv.text
+            : context.tv.surface3;
         final fg = big
-            ? TvColors.onAccent
+            ? context.tv.onAccent
             : on
-            ? (focused ? TvColors.accentDeep : TvColors.accent)
+            ? (focused ? context.tv.accentDeep : context.tv.accent)
             : focused
-            ? TvColors.bg
-            : TvColors.text;
+            ? context.tv.bg
+            : context.tv.text;
         return TvScale(
           focused: focused,
           pressed: pressed,
@@ -592,7 +598,7 @@ class TvIconButton extends StatelessWidget {
             decoration: BoxDecoration(
               color: bg,
               shape: BoxShape.circle,
-              boxShadow: focused ? tvRing() : const [],
+              boxShadow: focused ? tvRing(context) : const [],
             ),
             child: Center(
               child: busy
@@ -641,10 +647,10 @@ class TvChip extends StatelessWidget {
     selected: selected,
     builder: (context, focused, pressed) {
       final fg = focused
-          ? TvColors.bg
+          ? context.tv.bg
           : selected
-          ? TvColors.accent
-          : TvColors.text2;
+          ? context.tv.accent
+          : context.tv.text2;
       return TvScale(
         focused: focused,
         pressed: pressed,
@@ -654,19 +660,19 @@ class TvChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 15),
           decoration: BoxDecoration(
             color: focused
-                ? TvColors.text
+                ? context.tv.text
                 : selected
-                ? TvColors.accentSoft
-                : TvColors.surface2,
+                ? context.tv.accentSoft
+                : context.tv.surface2,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: focused
                   ? Colors.transparent
                   : selected
-                  ? TvColors.accent
-                  : TvColors.outline,
+                  ? context.tv.accent
+                  : context.tv.outline,
             ),
-            boxShadow: focused ? tvRing() : const [],
+            boxShadow: focused ? tvRing(context) : const [],
           ),
           child: DefaultTextStyle.merge(
             style: tvBody(12, color: fg),
@@ -694,32 +700,35 @@ class TvChip extends StatelessWidget {
 
 /// Remote key cap (`.kc`) in hints.
 class TvKeyCap extends StatelessWidget {
-  const TvKeyCap(this.text, {super.key, this.color = TvColors.text2});
+  const TvKeyCap(this.text, {super.key, this.color});
   final String text;
-  final Color color;
+
+  /// Highlight colour; a plain cap by default.
+  final Color? color;
 
   @override
-  Widget build(BuildContext context) => Container(
-    constraints: const BoxConstraints(minWidth: 22),
-    height: 18,
-    padding: const EdgeInsets.symmetric(horizontal: 5),
-    alignment: Alignment.center,
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(5),
-      border: Border.all(
-        color: color == TvColors.text2 ? TvColors.outline2 : color,
+  Widget build(BuildContext context) {
+    final tv = context.tv;
+    return Container(
+      constraints: const BoxConstraints(minWidth: 22),
+      height: 18,
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: color ?? tv.outline2),
       ),
-    ),
-    child: Text(
-      context.tr(text),
-      style: TextStyle(
-        fontSize: 9,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 0.4,
-        color: color,
+      child: Text(
+        context.tr(text),
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.4,
+          color: color ?? tv.text2,
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// `[KEY] action` hint line.
@@ -734,7 +743,7 @@ class TvHint extends StatelessWidget {
     children: [
       TvKeyCap(keyCap),
       const SizedBox(width: 5),
-      Text(context.tr(text), style: tvBody(10, color: TvColors.muted)),
+      Text(context.tr(text), style: tvBody(10, color: context.tv.muted)),
     ],
   );
 }
@@ -752,10 +761,17 @@ class TvStatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final status = tvStatus(phase);
     final (bg, fg) = switch (status) {
-      TvStatus.live => (TvColors.accentSoft, TvColors.accent),
-      TvStatus.connecting => (const Color(0x24FFC857), TvColors.warning),
-      TvStatus.error => (const Color(0x24FF7A7A), TvColors.error),
-      TvStatus.paused || TvStatus.idle => (TvColors.surface3, TvColors.text2),
+      TvStatus.live => (context.tv.accentSoft, context.tv.accent),
+      TvStatus.connecting => (
+        context.tv.warning.withValues(alpha: 0.14),
+        context.tv.warning,
+      ),
+      TvStatus.error => (
+        context.tv.error.withValues(alpha: 0.14),
+        context.tv.error,
+      ),
+      TvStatus.paused ||
+      TvStatus.idle => (context.tv.surface3, context.tv.text2),
     };
     return Container(
       height: 22,
@@ -807,11 +823,11 @@ class TvMiniPlayer extends ConsumerWidget {
     if (station == null) return const SizedBox.shrink();
     final status = tvStatus(state.phase);
     final (text, color) = switch (status) {
-      TvStatus.live => ('Na żywo', TvColors.accent),
-      TvStatus.connecting => ('Łączenie…', TvColors.warning),
-      TvStatus.paused => ('Pauza', TvColors.text2),
-      TvStatus.error => ('Błąd strumienia', TvColors.error),
-      TvStatus.idle => ('GOTOWE', TvColors.muted),
+      TvStatus.live => ('Na żywo', context.tv.accent),
+      TvStatus.connecting => ('Łączenie…', context.tv.warning),
+      TvStatus.paused => ('Pauza', context.tv.text2),
+      TvStatus.error => ('Błąd strumienia', context.tv.error),
+      TvStatus.idle => ('GOTOWE', context.tv.muted),
     };
     return TvFocusable(
       focusNode: focusNode,
@@ -827,12 +843,12 @@ class TvMiniPlayer extends ConsumerWidget {
           height: 48,
           padding: const EdgeInsets.fromLTRB(8, 0, 14, 0),
           decoration: BoxDecoration(
-            color: focused ? TvColors.surface3 : TvColors.surface2,
+            color: focused ? context.tv.surface3 : context.tv.surface2,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: focused ? Colors.transparent : TvColors.outline,
+              color: focused ? Colors.transparent : context.tv.outline,
             ),
-            boxShadow: focused ? tvRing() : const [],
+            boxShadow: focused ? tvRing(context) : const [],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -890,11 +906,11 @@ class TvMiniPlayer extends ConsumerWidget {
               ),
               if (focused) ...[
                 const SizedBox(width: 8),
-                const TvKeyCap('OK', color: TvColors.accent),
+                TvKeyCap('OK', color: context.tv.accent),
                 const SizedBox(width: 5),
                 Text(
                   context.tr('Pełny ekran'),
-                  style: tvBody(10, color: TvColors.text2),
+                  style: tvBody(10, color: context.tv.text2),
                 ),
               ],
             ],
@@ -917,7 +933,7 @@ class TvSwitch extends StatelessWidget {
     height: 24,
     padding: const EdgeInsets.all(2.5),
     decoration: BoxDecoration(
-      color: on ? TvColors.accent : TvColors.outline2,
+      color: on ? context.tv.accent : context.tv.outline2,
       borderRadius: BorderRadius.circular(12),
     ),
     child: AnimatedAlign(
@@ -952,7 +968,7 @@ class TvWordmark extends StatelessWidget {
         if (glyph) ...[
           Icon(
             Icons.graphic_eq_rounded,
-            color: TvColors.accent,
+            color: context.tv.accent,
             size: size * 1.15,
           ),
           SizedBox(width: size * 0.35),
@@ -965,7 +981,7 @@ class TvWordmark extends StatelessWidget {
                 style: heading(
                   size,
                   weight: FontWeight.w700,
-                  color: TvColors.text,
+                  color: context.tv.text,
                 ),
               ),
               TextSpan(
@@ -973,7 +989,7 @@ class TvWordmark extends StatelessWidget {
                 style: heading(
                   size,
                   weight: FontWeight.w400,
-                  color: TvColors.accent,
+                  color: context.tv.accent,
                 ),
               ),
             ],
@@ -1043,7 +1059,7 @@ class TvPageFrame extends StatelessWidget {
                           translateSubtitle ? context.tr(subtitle!) : subtitle!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: tvBody(11, color: TvColors.muted),
+                          style: tvBody(11, color: context.tv.muted),
                         ),
                       ],
                     ],
@@ -1072,56 +1088,61 @@ class TvEmptyState extends StatelessWidget {
     required this.title,
     required this.message,
     this.actions = const [],
-    this.color = TvColors.accent,
+    this.color,
   });
   final IconData icon;
   final String title;
   final String message;
   final List<Widget> actions;
-  final Color color;
+
+  /// Icon colour; the accent by default.
+  final Color? color;
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(
-        TvLayout.ringInset,
-        12,
-        TvLayout.safeX,
-        TvLayout.safeY,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 96,
-            height: 96,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
+  Widget build(BuildContext context) {
+    final color = this.color ?? context.tv.accent;
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(
+          TvLayout.ringInset,
+          12,
+          TvLayout.safeX,
+          TvLayout.safeY,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 48, color: color),
             ),
-            child: Icon(icon, size: 48, color: color),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            context.tr(title),
-            textAlign: TextAlign.center,
-            style: tvHeading(24),
-          ),
-          const SizedBox(height: 10),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 500),
-            child: Text(
-              context.tr(message),
+            const SizedBox(height: 14),
+            Text(
+              context.tr(title),
               textAlign: TextAlign.center,
-              style: tvBody(14, color: TvColors.text2, height: 1.4),
+              style: tvHeading(24),
             ),
-          ),
-          if (actions.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            Wrap(spacing: 12, runSpacing: 12, children: actions),
+            const SizedBox(height: 10),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: Text(
+                context.tr(message),
+                textAlign: TextAlign.center,
+                style: tvBody(14, color: context.tv.text2, height: 1.4),
+              ),
+            ),
+            if (actions.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              Wrap(spacing: 12, runSpacing: 12, children: actions),
+            ],
           ],
-        ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }

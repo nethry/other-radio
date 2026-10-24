@@ -14,7 +14,7 @@ The app includes Radio Browser server discovery/failover, worldwide station acce
 
 ### Android TV
 
-The same Android APK includes a TV launcher entry and a 320×180 branded banner; a touchscreen is optional. Native Android UI-mode detection switches to a dedicated remote-first interface (`lib/features/tv/`, from the canvas's Android TV page): a dark, teal 10-foot layout with a collapsible navigation rail, overscan-safe margins and a scale-plus-ring focus that never relies on colour alone.
+The same Android APK includes a TV launcher entry and a 320×180 branded banner; a touchscreen is optional. Native Android UI-mode detection switches to a dedicated remote-first interface (`lib/features/tv/`, from the canvas's Android TV page): a 10-foot layout (dark teal by default; light theme and accent colour follow Settings) with a collapsible navigation rail, overscan-safe margins and a scale-plus-ring focus that never relies on colour alone.
 
 - **Splash:** a cold start plays the "tuning in" reveal (≈ 3.5 s: signal line, rising waveform, radio waves, wordmark). A loader appears only if the catalogue is still loading (cached stations count as ready), capped at 6 s; then the logo fades into Discover. OK or Back skip it; Back during the exit closes the app. Reduced motion shows a static logo with a short fade. The Android launch window uses the same `#05080B` stage colour on TV, so there is no flash between the system splash and the app.
 - **Discover:** a featured station (focused at launch — one OK starts music), then Favorites, Recently played, Popular and Genres rows. ←/→ move within a row, ↑/↓ between rows, and each row remembers its column. Genres (and **All stations**) open a full grid.
@@ -23,7 +23,7 @@ The same Android APK includes a TV launcher entry and a 320×180 branded banner;
 - **Back:** closes menus, dialogs and the player first (focus returns to the control that opened them), then jumps from deep content to the featured station, then opens the rail; Back on the rail asks before closing the app. Only that dialog's **Zamknij** stops playback.
 - **Search:** an on-screen keyboard with Polish letters and digits, recent searches and suggestions; results update after every letter, so the system IME is never needed.
 - **Favorites:** a numbered grid with sort chips. Hold OK → **Przenieś** lifts the card: arrows move it, OK drops, Back cancels (the remote replacement for drag-to-reorder). Removal asks first.
-- **History and settings:** History rows resume with OK and reach their heart with →. Settings has two panes (language and country, reduced motion, catalogue refresh, about).
+- **History and settings:** History rows resume with OK and reach their heart with →. Settings has two panes (language and country; theme, accent colour and reduced motion; catalogue refresh; about). The splash stage stays dark in either theme and takes the chosen accent.
 - **Play/Pause and volume:** Android's existing media session and system volume handling remain available. Home preserves background radio playback.
 
 Not implemented from the TV design because nothing in the app backs them yet: voice search, the sleep timer, the screensaver, the offline screen (a failed catalogue refresh is not proof of disconnection) and an "autoplay last station" setting (restoring the last station must not autoplay). The design's Outfit/Figtree type is rendered with the bundled Sora/Manrope.

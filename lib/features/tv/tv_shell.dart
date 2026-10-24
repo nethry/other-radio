@@ -235,10 +235,10 @@ class _TvShellState extends ConsumerState<TvShell> {
       child: TvShellScope._(
         this,
         child: Scaffold(
-          backgroundColor: TvColors.bg,
+          backgroundColor: context.tv.bg,
           body: Stack(
             children: [
-              const Positioned(
+              Positioned(
                 right: -60,
                 top: 20,
                 width: 450,
@@ -247,7 +247,10 @@ class _TvShellState extends ConsumerState<TvShell> {
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: RadialGradient(
-                        colors: [Color(0x242FBFA9), Color(0x002FBFA9)],
+                        colors: [
+                          context.tv.accentDeep.withValues(alpha: 0.14),
+                          context.tv.accentDeep.withValues(alpha: 0),
+                        ],
                       ),
                     ),
                   ),
@@ -345,11 +348,15 @@ class _Rail extends ConsumerWidget {
         width: open ? TvLayout.railOpen : TvLayout.railCollapsed,
         padding: const EdgeInsets.fromLTRB(32, TvLayout.safeY, 0, 0),
         decoration: BoxDecoration(
-          color: open ? TvColors.bg2 : null,
+          color: open ? context.tv.bg2 : null,
           gradient: open
               ? null
-              : const LinearGradient(
-                  colors: [TvColors.bg, TvColors.bg, Color(0x000A0E13)],
+              : LinearGradient(
+                  colors: [
+                    context.tv.bg,
+                    context.tv.bg,
+                    context.tv.bg.withValues(alpha: 0),
+                  ],
                   stops: [0, 0.7, 1],
                 ),
           boxShadow: open
@@ -376,10 +383,10 @@ class _Rail extends ConsumerWidget {
                     padding: const EdgeInsets.only(left: 13),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.graphic_eq_rounded,
                           size: 24,
-                          color: TvColors.accent,
+                          color: context.tv.accent,
                         ),
                         const SizedBox(width: 8),
                         AnimatedOpacity(
@@ -396,7 +403,7 @@ class _Rail extends ConsumerWidget {
                                   text: 'radio',
                                   style: tvHeading(
                                     20,
-                                    color: TvColors.accent,
+                                    color: context.tv.accent,
                                   ).copyWith(fontWeight: FontWeight.w400),
                                 ),
                               ],
@@ -454,10 +461,10 @@ class _RailItem extends StatelessWidget {
     selected: current,
     builder: (context, focused, pressed) {
       final color = focused
-          ? TvColors.bg
+          ? context.tv.bg
           : current
-          ? TvColors.accent
-          : TvColors.muted;
+          ? context.tv.accent
+          : context.tv.muted;
       return TvScale(
         focused: focused,
         pressed: pressed,
@@ -468,7 +475,7 @@ class _RailItem extends StatelessWidget {
           width: open ? 170 : 48,
           height: 40,
           decoration: BoxDecoration(
-            color: focused ? TvColors.text : Colors.transparent,
+            color: focused ? context.tv.text : Colors.transparent,
             borderRadius: BorderRadius.circular(20),
           ),
           child: ClipRRect(
@@ -483,7 +490,7 @@ class _RailItem extends StatelessWidget {
                       width: 3,
                       height: 12,
                       decoration: BoxDecoration(
-                        color: TvColors.accent,
+                        color: context.tv.accent,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -522,7 +529,9 @@ class _RailItem extends StatelessWidget {
                           Padding(
                             padding: const EdgeInsets.only(right: 6),
                             child: Eq(
-                              color: focused ? TvColors.bg : TvColors.accent,
+                              color: focused
+                                  ? context.tv.bg
+                                  : context.tv.accent,
                               height: 10,
                             ),
                           ),

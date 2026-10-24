@@ -98,7 +98,7 @@ class _TvPlayerScreenState extends ConsumerState<TvPlayerScreen> {
     final size = MediaQuery.sizeOf(context);
     if (station == null) {
       return Scaffold(
-        backgroundColor: TvColors.bg,
+        backgroundColor: context.tv.bg,
         body: TvEmptyState(
           icon: Icons.radio_rounded,
           title: 'Wybierz stację',
@@ -117,7 +117,7 @@ class _TvPlayerScreenState extends ConsumerState<TvPlayerScreen> {
       stationsProvider.select((c) => c.isFavorite(station)),
     );
     final status = tvStatus(state.phase);
-    final palette = TvColors.tiles[paletteIndex(station.id)];
+    final palette = context.tv.tiles[paletteIndex(station.id)];
     final art = (size.height - 190).clamp(160.0, 280.0);
     final artLeft = size.width < 900 ? 56.0 : 80.0;
     final textLeft = artLeft + art + 50;
@@ -132,7 +132,7 @@ class _TvPlayerScreenState extends ConsumerState<TvPlayerScreen> {
     final (track, artist) = splitTrack(state.title);
     final playLabel = state.active ? 'Wstrzymaj' : 'Odtwórz';
     return Scaffold(
-      backgroundColor: TvColors.bg,
+      backgroundColor: context.tv.bg,
       body: Semantics(
         label: context.tr('Teraz gra'),
         explicitChildNodes: true,
@@ -145,12 +145,12 @@ class _TvPlayerScreenState extends ConsumerState<TvPlayerScreen> {
               height: 450,
               child: _Glow(color: palette.fg, opacity: 0.22),
             ),
-            const Positioned(
+            Positioned(
               right: -50,
               bottom: -100,
               width: 350,
               height: 300,
-              child: _Glow(color: TvColors.accentDeep, opacity: 0.16),
+              child: _Glow(color: context.tv.accentDeep, opacity: 0.16),
             ),
             Positioned(
               left: TvLayout.safeX,
@@ -176,11 +176,13 @@ class _TvPlayerScreenState extends ConsumerState<TvPlayerScreen> {
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(32),
-                      boxShadow: const [
+                      boxShadow: [
                         BoxShadow(
-                          color: Color(0x99000000),
+                          color: Colors.black.withValues(
+                            alpha: context.tv.dark ? 0.6 : 0.16,
+                          ),
                           blurRadius: 50,
-                          offset: Offset(0, 20),
+                          offset: const Offset(0, 20),
                         ),
                       ],
                     ),
@@ -219,7 +221,7 @@ class _TvPlayerScreenState extends ConsumerState<TvPlayerScreen> {
                             subtitle(station, language: context.languageCode),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: tvBody(14, color: TvColors.text2),
+                            style: tvBody(14, color: context.tv.text2),
                           ),
                           const SizedBox(height: 13),
                           _TrackPanel(
@@ -287,7 +289,7 @@ class _TvPlayerScreenState extends ConsumerState<TvPlayerScreen> {
                                       ? playLabel
                                       : _controls[_control],
                                 ),
-                                style: tvBody(12, color: TvColors.text2),
+                                style: tvBody(12, color: context.tv.text2),
                               ),
                             ),
                           ],
@@ -326,15 +328,18 @@ class _TrackPanel extends StatelessWidget {
     width: double.infinity,
     padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
     decoration: BoxDecoration(
-      color: const Color(0xCC121921),
+      color: context.tv.surface.withValues(alpha: 0.8),
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: TvColors.outline),
+      border: Border.all(color: context.tv.outline),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (track.isNotEmpty) ...[
-          Text(context.tr('Teraz w eterze').toUpperCase(), style: tvLabel()),
+          Text(
+            context.tr('Teraz w eterze').toUpperCase(),
+            style: tvLabel(context.tv.muted),
+          ),
           const SizedBox(height: 4),
           Text(
             track,
@@ -347,17 +352,17 @@ class _TrackPanel extends StatelessWidget {
               artist,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: tvBody(13, color: TvColors.muted),
+              style: tvBody(13, color: context.tv.muted),
             ),
         ] else ...[
           Text(
             context.tr('Brak informacji o utworze'),
-            style: tvBody(14, weight: FontWeight.w700, color: TvColors.text2),
+            style: tvBody(14, weight: FontWeight.w700, color: context.tv.text2),
           ),
           const SizedBox(height: 2),
           Text(
             context.tr('Ta stacja nie przesyła tytułów — słuchasz na żywo.'),
-            style: tvBody(11, color: TvColors.muted),
+            style: tvBody(11, color: context.tv.muted),
           ),
         ],
         const SizedBox(height: 10),
@@ -368,7 +373,7 @@ class _TrackPanel extends StatelessWidget {
             height: 40,
             gap: 3,
             playing: playing,
-            color: TvColors.accent,
+            color: context.tv.accent,
           ),
         ),
       ],
@@ -390,7 +395,7 @@ class _ErrorActions extends ConsumerWidget {
           context.tr(
             error ?? 'Nie udało się połączyć ze strumieniem. Stacja może być chwilowo niedostępna.',
           ),
-          style: tvBody(13, color: TvColors.text2, height: 1.4),
+          style: tvBody(13, color: context.tv.text2, height: 1.4),
         ),
         const SizedBox(height: 12),
         Wrap(
@@ -497,7 +502,7 @@ class _HaloState extends State<_Halo> with SingleTickerProviderStateMixin {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(32),
-                  border: Border.all(color: TvColors.accent, width: 1.5),
+                  border: Border.all(color: context.tv.accent, width: 1.5),
                 ),
               ),
             ),
