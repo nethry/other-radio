@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+ system splash on TV: the static launcher icon on the
+         splash stage colour (no animated icon); see values-television. -->
+    <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@color/tv_splash_background</item>
+        <item name="android:windowSplashScreenBackground">@color/tv_splash_background</item>
+    </style>
+    <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@color/tv_splash_background</item>
+    </style>
+</resources>

@@ -21,6 +21,7 @@ class _OtherRadioAppState extends ConsumerState<OtherRadioApp> {
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
+    final television = ref.watch(televisionProvider);
     return MaterialApp(
       title: 'OtherRadio',
       navigatorKey: _navigatorKey,
@@ -34,7 +35,8 @@ class _OtherRadioAppState extends ConsumerState<OtherRadioApp> {
         accent: settings.accent,
         calm: settings.reduceMotion,
       ),
-      themeMode: settings.themeMode,
+      // The TV design is dark-only.
+      themeMode: television ? ThemeMode.dark : settings.themeMode,
       themeAnimationDuration: settings.reduceMotion
           ? Duration.zero
           : const Duration(milliseconds: 300),
@@ -45,12 +47,9 @@ class _OtherRadioAppState extends ConsumerState<OtherRadioApp> {
         CountryLocalizations.delegate,
       ],
       builder: (context, child) => AppShortcuts(
-        enabled: !ref.watch(televisionProvider),
+        enabled: !television,
         navigatorKey: _navigatorKey,
-        child: TelevisionFrame(
-          enabled: ref.watch(televisionProvider),
-          child: child!,
-        ),
+        child: TelevisionFrame(enabled: television, child: child!),
       ),
       home: const AppShell(),
     );

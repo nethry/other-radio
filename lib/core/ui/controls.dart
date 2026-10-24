@@ -638,6 +638,7 @@ class Kbd extends StatelessWidget {
   final String text;
   @override
   Widget build(BuildContext context) {
+    if (TvInput.of(context)) return const SizedBox.shrink();
     final rc = context.rc;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),

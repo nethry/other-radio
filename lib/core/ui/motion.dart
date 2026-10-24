@@ -166,11 +166,15 @@ class Viz extends StatefulWidget {
     this.height = 48,
     this.gap = 3,
     this.playing = true,
+    this.color,
   });
   final int count;
   final double height;
   final double gap;
   final bool playing;
+
+  /// Defaults to the accent.
+  final Color? color;
   @override
   State<Viz> createState() => _VizState();
 }
@@ -183,7 +187,7 @@ class _VizState extends State<Viz> with TickerProviderStateMixin, _Looping {
 
   @override
   Widget build(BuildContext context) {
-    final color = context.rc.ac;
+    final color = widget.color ?? context.rc.ac;
     return ExcludeSemantics(
       child: SizedBox(
         height: widget.height,

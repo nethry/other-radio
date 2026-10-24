@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../features/tv/tv_overlays.dart';
+
 /// Remote input support covers Navigator routes, dialogs and country pickers.
 /// TV detection changes input affordances only; pages retain width breakpoints.
 class TvInput extends InheritedWidget {
@@ -14,6 +16,10 @@ class TvInput extends InheritedWidget {
   bool updateShouldNotify(TvInput oldWidget) => enabled != oldWidget.enabled;
 }
 
+/// Wraps every route on Android TV: Select/A activate the focused control,
+/// arrows move spatially, and short confirmations appear above all routes.
+/// The TV pages (`features/tv/`) apply their own overscan-safe margins and
+/// TV-sized type, so nothing is padded or rescaled here.
 class TelevisionFrame extends StatelessWidget {
   const TelevisionFrame({
     super.key,
@@ -35,22 +41,7 @@ class TelevisionFrame extends StatelessWidget {
             },
             child: FocusTraversalGroup(
               policy: ReadingOrderTraversalPolicy(),
-              child: ColoredBox(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
-                  child: MediaQuery(
-                    data: MediaQuery.of(context).copyWith(
-                      textScaler: MediaQuery.textScalerOf(context)
-                          .clamp(minScaleFactor: 1.15),
-                    ),
-                    child: child,
-                  ),
-                ),
-              ),
+              child: TvToastHost(child: child),
             ),
           ),
   );

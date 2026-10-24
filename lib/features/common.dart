@@ -10,6 +10,9 @@ import '../core/ui/controls.dart';
 import '../core/ui/motion.dart';
 import '../data/models/station.dart';
 
+/// Shown in settings and the licence page.
+const appVersion = '0.2.1';
+
 /// Width breakpoints. Layouts depend on window width, never on platform.
 abstract final class Breakpoints {
   /// Sidebar navigation instead of the bottom tab bar.

@@ -10,6 +10,8 @@ import '../../core/theme.dart';
 import '../../core/ui/art.dart';
 import '../../core/ui/controls.dart';
 import '../../core/ui/motion.dart';
+import '../../core/ui/tv_input.dart';
+import 'tv_browse_screen.dart';
 import '../../data/models/station.dart';
 import '../common.dart';
 import 'station_controller.dart';
@@ -23,7 +25,9 @@ class BrowseScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => LayoutBuilder(
-    builder: (context, constraints) => constraints.maxWidth < compact
+    builder: (context, constraints) => TvInput.of(context)
+        ? const TvBrowseScreen()
+        : constraints.maxWidth < compact
         ? const _MobileBrowse()
         : const _WideBrowse(),
   );

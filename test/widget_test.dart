@@ -14,6 +14,9 @@ import 'package:other_radio/data/models/history_entry.dart';
 import 'package:other_radio/data/models/station.dart';
 import 'package:other_radio/data/repositories/station_repository.dart';
 import 'package:other_radio/features/stations/station_controller.dart';
+import 'package:other_radio/features/tv/tv_player.dart';
+import 'package:other_radio/features/tv/tv_shell.dart';
+import 'package:other_radio/features/tv/tv_widgets.dart';
 
 class _Repository extends Mock implements StationRepository {}
 
@@ -143,6 +146,14 @@ Future<void> _go(WidgetTester tester, AppPage page) async {
 final _miniPlayer = find.byWidgetPredicate(
   (w) => w is Tappable && w.semanticLabel == 'Otwórz odtwarzacz',
 );
+
+String? _focusedLabel() => FocusManager.instance.primaryFocus?.debugLabel;
+
+/// Name of the station card holding focus, if any.
+String? _focusedStation() => FocusManager.instance.primaryFocus?.context
+    ?.findAncestorWidgetOfExactType<TvStationCard>()
+    ?.station
+    .name;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -344,87 +355,256 @@ void main() {
     });
   }
 
-  for (final size in [const Size(960, 540), const Size(1920, 1080)]) {
-    testWidgets('TV remote navigates, plays and returns home at $size', (
+  final tvStations = [
+    for (var i = 0; i < 30; i++) station.copyWith(id: '$i', name: 'Station $i'),
+  ];
+
+  Future<ProviderContainer> pumpTv(
+    WidgetTester tester, {
+    Size size = const Size(960, 540),
+    List<Station>? stations,
+  }) async {
+    await _pumpApp(
       tester,
-    ) async {
-      await _pumpApp(tester, size: size, language: 'en', television: true);
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(OtherRadioApp)),
-      );
-      Future<void> press(LogicalKeyboardKey key) async {
-        await tester.sendKeyEvent(key);
-        await tester.pumpAndSettle();
-        _noErrors(tester);
-      }
-
-      // Initial focus is a real control, not an invisible root focus node.
-      expect(
-        FocusManager.instance.primaryFocus?.context
-            ?.findAncestorWidgetOfExactType<Tappable>(),
-        isNotNull,
-      );
-      await press(LogicalKeyboardKey.arrowDown);
-      await press(LogicalKeyboardKey.select);
-      expect(container.read(stationsProvider).page, AppPage.search);
-      expect(tester.testTextInput.isVisible, isFalse);
-      await tester.binding.handlePopRoute();
-      await tester.pumpAndSettle();
-      expect(container.read(stationsProvider).page, AppPage.browse);
-
-      await press(LogicalKeyboardKey.arrowRight);
-      String? focusedLabel() => FocusManager.instance.primaryFocus?.context
-          ?.findAncestorWidgetOfExactType<Tappable>()
-          ?.semanticLabel;
-      final visited = <String?>[];
-      for (var i = 0; i < 16 && focusedLabel() != 'Odtwórz Radio Test'; i++) {
-        visited.add(focusedLabel());
-        await press(LogicalKeyboardKey.arrowDown);
-      }
-      expect(
-        focusedLabel(),
-        'Odtwórz Radio Test',
-        reason: 'Remote focus path: $visited',
-      );
-      await press(LogicalKeyboardKey.select);
-      expect(container.read(playbackProvider).state.phase, RadioPhase.playing);
-      expect(find.text('Radio Test'), findsWidgets);
-      _noErrors(tester);
-      await tester.pumpWidget(const SizedBox.shrink());
-    });
+      size: size,
+      language: 'en',
+      television: true,
+      stations: stations ?? tvStations,
+    );
+    return ProviderScope.containerOf(
+      tester.element(find.byType(OtherRadioApp)),
+    );
   }
 
-  testWidgets('TV D-pad scrolls through a lazy station grid', (tester) async {
-    final many = [
-      for (var i = 0; i < 80; i++)
-        station.copyWith(id: '$i', name: 'Station $i'),
-    ];
+  Future<void> press(WidgetTester tester, LogicalKeyboardKey key) async {
+    await tester.sendKeyEvent(key);
+    await tester.pumpAndSettle();
+    _noErrors(tester);
+  }
+
+  Future<void> back(WidgetTester tester) async {
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    _noErrors(tester);
+  }
+
+  /// Holds OK past the long-press threshold.
+  Future<void> hold(WidgetTester tester) async {
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+    _noErrors(tester);
+  }
+
+  for (final size in [
+    const Size(960, 540),
+    const Size(853, 480),
+    const Size(1920, 1080),
+  ]) {
+    testWidgets(
+      'TV Discover plays from the hero, keeps row columns and walks the Back '
+      'stack at $size',
+      (tester) async {
+        final container = await pumpTv(tester, size: size);
+        final player = container.read(playbackProvider);
+        final catalogue = container.read(stationsProvider);
+
+        // Launch → listening in one press.
+        expect(_focusedLabel(), 'hero play');
+        await press(tester, LogicalKeyboardKey.select);
+        expect(player.state.station?.id, '0');
+        expect(player.state.phase, RadioPhase.playing);
+        expect(find.textContaining('Now playing: Station 0'), findsOneWidget);
+
+        // Empty Favourites is skipped; Recently played now holds Station 0.
+        await press(tester, LogicalKeyboardKey.arrowDown);
+        expect(_focusedStation(), 'Station 0');
+        await press(tester, LogicalKeyboardKey.arrowDown);
+        await press(tester, LogicalKeyboardKey.arrowRight);
+        await press(tester, LogicalKeyboardKey.arrowRight);
+        expect(_focusedStation(), 'Station 2');
+        await press(tester, LogicalKeyboardKey.arrowDown);
+        expect(_focusedStation(), isNull, reason: 'Genres row');
+        await press(tester, LogicalKeyboardKey.arrowUp);
+        expect(_focusedStation(), 'Station 2', reason: 'rows keep columns');
+
+        // ← at column 0 opens the rail on the current section; → closes it
+        // and restores the exact card.
+        await press(tester, LogicalKeyboardKey.arrowLeft);
+        await press(tester, LogicalKeyboardKey.arrowLeft);
+        await press(tester, LogicalKeyboardKey.arrowLeft);
+        expect(_focusedLabel(), 'rail Odkrywaj');
+        await press(tester, LogicalKeyboardKey.arrowRight);
+        expect(_focusedStation(), 'Station 0');
+
+        // Back: content → hero → rail → exit dialog ("Stay" focused).
+        await back(tester);
+        expect(_focusedLabel(), 'hero play');
+        await back(tester);
+        expect(_focusedLabel(), 'rail Odkrywaj');
+        await back(tester);
+        expect(find.text('Close OtherRadio?'), findsOneWidget);
+        await press(tester, LogicalKeyboardKey.select);
+        expect(find.text('Close OtherRadio?'), findsNothing);
+        expect(_focusedLabel(), 'rail Odkrywaj');
+        expect(player.state.phase, RadioPhase.playing);
+
+        // Rail → Search; the on-screen keyboard types without the system IME.
+        await press(tester, LogicalKeyboardKey.arrowDown);
+        await press(tester, LogicalKeyboardKey.select);
+        expect(catalogue.page, AppPage.search);
+        await press(tester, LogicalKeyboardKey.select);
+        await press(tester, LogicalKeyboardKey.arrowRight);
+        await press(tester, LogicalKeyboardKey.select);
+        expect(catalogue.query, 'aą');
+        expect(tester.testTextInput.isVisible, isFalse);
+        await back(tester);
+        expect(_focusedLabel(), 'rail Szukaj');
+        await tester.pumpWidget(const SizedBox.shrink());
+      },
+    );
+  }
+
+  testWidgets('TV mini-player opens the full player; Back restores focus', (
+    tester,
+  ) async {
+    final container = await pumpTv(tester);
+    final player = container.read(playbackProvider);
+    await press(tester, LogicalKeyboardKey.select);
+    await press(tester, LogicalKeyboardKey.arrowUp);
+    expect(_focusedLabel(), 'mini player');
+    await press(tester, LogicalKeyboardKey.select);
+    expect(find.byType(TvPlayerScreen), findsOneWidget);
+    expect(find.text('Pause'), findsOneWidget);
+    await press(tester, LogicalKeyboardKey.select);
+    expect(player.state.phase, RadioPhase.paused);
+    await press(tester, LogicalKeyboardKey.arrowRight);
+    expect(find.text('Next station'), findsOneWidget);
+    await back(tester);
+    expect(find.byType(TvPlayerScreen), findsNothing);
+    expect(player.state.phase, RadioPhase.paused);
+    expect(_focusedLabel(), 'mini player');
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets(
+    'TV favourites: hold OK opens the menu, Move reorders without dragging, '
+    'removal is confirmed',
+    (tester) async {
+      final container = await pumpTv(tester);
+      final catalogue = container.read(stationsProvider);
+      for (final s in tvStations.take(3)) {
+        await catalogue.toggleFavorite(s);
+      }
+      catalogue.navigate(AppPage.favorites);
+      await tester.pumpAndSettle();
+      expect(_focusedStation(), 'Station 0');
+
+      await hold(tester);
+      expect(find.text('Move'), findsOneWidget);
+      await press(tester, LogicalKeyboardKey.arrowDown);
+      await press(tester, LogicalKeyboardKey.select);
+      await press(tester, LogicalKeyboardKey.arrowRight);
+      expect(catalogue.favorites.first.id, '0', reason: 'committed on drop');
+      await press(tester, LogicalKeyboardKey.select);
+      expect([for (final s in catalogue.favorites) s.id], ['1', '0', '2']);
+      expect(_focusedStation(), 'Station 0');
+
+      await hold(tester);
+      await press(tester, LogicalKeyboardKey.arrowDown);
+      await press(tester, LogicalKeyboardKey.arrowDown);
+      await press(tester, LogicalKeyboardKey.select);
+      expect(find.text('Remove from favorites?'), findsOneWidget);
+      await press(tester, LogicalKeyboardKey.arrowRight);
+      await press(tester, LogicalKeyboardKey.select);
+      expect([for (final s in catalogue.favorites) s.id], ['1', '2']);
+      expect(_focusedStation(), 'Station 2', reason: 'focus moves to next');
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets('TV splash reveals the logo and lands on Discover', (
+    tester,
+  ) async {
     await _pumpApp(
       tester,
       size: const Size(960, 540),
-      language: 'en',
       television: true,
-      stations: many,
+      calm: false,
     );
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-    await tester.pumpAndSettle();
-    final reached = <String>{};
-    for (var i = 0; i < 24; i++) {
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-      await tester.pumpAndSettle();
-      final label = FocusManager.instance.primaryFocus?.context
-          ?.findAncestorWidgetOfExactType<Tappable>()
-          ?.semanticLabel;
-      if (label != null && label.startsWith('Odtwórz Station')) {
-        reached.add(label);
+    expect(find.byType(TvShell), findsNothing);
+    // The remote does nothing behind the splash.
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump(const Duration(seconds: 3));
+    expect(find.text('other'), findsOneWidget);
+    expect(find.text('POLSKIE RADIO · NA ŻYWO'), findsOneWidget);
+    // Cached stations are ready, so the reveal goes straight to the exit.
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byType(TvShell), findsOneWidget);
+    expect(find.text('other'), findsNothing);
+    expect(_focusedLabel(), 'hero play');
+    _noErrors(tester);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('TV splash: OK or Back skip to Discover', (tester) async {
+    for (final skip in ['ok', 'back']) {
+      await _pumpApp(
+        tester,
+        size: const Size(960, 540),
+        television: true,
+        calm: false,
+      );
+      expect(find.byType(TvShell), findsNothing);
+      if (skip == 'ok') {
+        await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      } else {
+        await tester.binding.handlePopRoute();
       }
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.byType(TvShell), findsOneWidget, reason: skip);
+      expect(_focusedLabel(), 'hero play', reason: skip);
       _noErrors(tester);
+      await tester.pumpWidget(const SizedBox.shrink());
     }
-    expect(
-      reached.length,
-      greaterThan(5),
-      reason: 'Focus must reach stations beyond the initial viewport: $reached',
+  });
+
+  testWidgets('TV all-stations grid reaches rows that were not built yet', (
+    tester,
+  ) async {
+    await pumpTv(
+      tester,
+      stations: [
+        for (var i = 0; i < 80; i++)
+          station.copyWith(id: '$i', name: 'Station $i'),
+      ],
     );
+    // Popular → Genres → "All stations".
+    await press(tester, LogicalKeyboardKey.arrowDown);
+    await press(tester, LogicalKeyboardKey.arrowDown);
+    final tile = _focusedLabel();
+    await press(tester, LogicalKeyboardKey.select);
+    expect(_focusedStation(), 'Station 0');
+    await press(tester, LogicalKeyboardKey.arrowRight);
+    expect(_focusedStation(), 'Station 1');
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    expect(_focusedStation(), 'Station 0', reason: 'focus never wraps');
+    final reached = <String?>{};
+    for (var i = 0; i < 12; i++) {
+      await press(tester, LogicalKeyboardKey.arrowDown);
+      reached.add(_focusedStation());
+    }
+    expect(reached, hasLength(12));
+    final card = find.byWidgetPredicate(
+      (w) => w is TvStationCard && w.station.name == _focusedStation(),
+    );
+    expect(tester.getRect(card).bottom, lessThanOrEqualTo(540));
+    await back(tester);
+    expect(_focusedLabel(), tile);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

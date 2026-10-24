@@ -14,14 +14,19 @@ The app includes Radio Browser server discovery/failover, worldwide station acce
 
 ### Android TV
 
-The same Android APK includes a TV launcher entry and a 320×180 branded banner; a touchscreen is optional. Native Android UI-mode detection enables remote-friendly input, overscan-safe margins, slightly larger text, visible focus outlines and initial navigation focus. Layouts still adapt to available width.
+The same Android APK includes a TV launcher entry and a 320×180 branded banner; a touchscreen is optional. Native Android UI-mode detection switches to a dedicated remote-first interface (`lib/features/tv/`, from the canvas's Android TV page): a dark, teal 10-foot layout with a collapsible navigation rail, overscan-safe margins and a scale-plus-ring focus that never relies on colour alone.
 
-- **D-pad:** move between navigation, stations, filters and controls; focused stations scroll into view.
-- **OK / Select:** activate the focused control. Search opens the keyboard when you enter the search field, not simply when visiting Search.
-- **Back:** dismiss the keyboard or current dialog/player first; from a library/settings page return to Browse; from Browse use Android's normal exit behavior.
+- **Splash:** a cold start plays the "tuning in" reveal (≈ 3.5 s: signal line, rising waveform, radio waves, wordmark). A loader appears only if the catalogue is still loading (cached stations count as ready), capped at 6 s; then the logo fades into Discover. OK or Back skip it; Back during the exit closes the app. Reduced motion shows a static logo with a short fade. The Android launch window uses the same `#05080B` stage colour on TV, so there is no flash between the system splash and the app.
+- **Discover:** a featured station (focused at launch — one OK starts music), then Favorites, Recently played, Popular and Genres rows. ←/→ move within a row, ↑/↓ between rows, and each row remembers its column. Genres (and **All stations**) open a full grid.
+- **OK / hold OK:** OK on a station plays it at once and you stay on the page; OK on the station already playing opens the full player. Holding OK (or the Menu key) opens a menu: play, add/remove favorite, station details.
+- **Navigation rail:** ← on the first item of a row opens it on the current section; → or Back closes it and restores the exact card. **Teraz gra** is a second way to the player; ↑ from the featured station reaches the mini-player.
+- **Back:** closes menus, dialogs and the player first (focus returns to the control that opened them), then jumps from deep content to the featured station, then opens the rail; Back on the rail asks before closing the app. Only that dialog's **Zamknij** stops playback.
+- **Search:** an on-screen keyboard with Polish letters and digits, recent searches and suggestions; results update after every letter, so the system IME is never needed.
+- **Favorites:** a numbered grid with sort chips. Hold OK → **Przenieś** lifts the card: arrows move it, OK drops, Back cancels (the remote replacement for drag-to-reorder). Removal asks first.
+- **History and settings:** History rows resume with OK and reach their heart with →. Settings has two panes (language and country, reduced motion, catalogue refresh, about).
 - **Play/Pause and volume:** Android's existing media session and system volume handling remain available. Home preserves background radio playback.
-- **Favorites → Edit:** use the reorder menu's **Move up / Move down** actions with a remote.
-- Country and language settings work independently on TV, just as on mobile.
+
+Not implemented from the TV design because nothing in the app backs them yet: voice search, the sleep timer, the screensaver, the offline screen (a failed catalogue refresh is not proof of disconnection) and an "autoplay last station" setting (restoring the last station must not autoplay). The design's Outfit/Figtree type is rendered with the bundled Sora/Manrope.
 
 Build a development APK with `flutter build apk --debug`, then sideload with `adb install -r build/app/outputs/flutter-apk/app-debug.apk`. For a signed release use the signing configuration in [CI/CD](docs/CI-CD.md). The neutral brand banner is shared by English/Polish; regenerate it on Windows with `tool/generate_tv_banner.ps1`.
 

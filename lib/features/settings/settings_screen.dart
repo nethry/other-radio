@@ -348,7 +348,7 @@ class _InfoGroup extends StatelessWidget {
               onTap: () => showLicensePage(
                 context: context,
                 applicationName: 'OtherRadio',
-                applicationVersion: '0.2.1',
+                applicationVersion: appVersion,
               ),
             ),
           ],

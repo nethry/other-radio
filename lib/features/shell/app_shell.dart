@@ -18,6 +18,8 @@ import '../stations/browse_screen.dart';
 import '../stations/favorites_screen.dart';
 import '../stations/search_screen.dart';
 import '../stations/station_controller.dart';
+import '../tv/tv_shell.dart';
+import '../tv/tv_splash.dart';
 
 typedef _Destination = ({AppPage page, String label, IconData icon});
 
@@ -64,27 +66,16 @@ class _AppShellState extends ConsumerState<AppShell> {
     final hasStation = ref.watch(
       playbackProvider.select((p) => p.state.station != null),
     );
-    final television = TvInput.of(context);
-    return PopScope(
-      canPop: !television || page == AppPage.browse,
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop && television && page != AppPage.browse) {
-          ref.read(stationsProvider).navigate(AppPage.browse);
-          _root.requestFocus();
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) _root.nextFocus();
-          });
-        }
-      },
-      child: Focus(
-        focusNode: _root,
-        autofocus: !television,
-        child: LayoutBuilder(
-          builder: (context, constraints) =>
-              constraints.maxWidth < Breakpoints.sidebar
-              ? _compact(page, hasStation)
-              : _wide(constraints.maxWidth, page, hasStation),
-        ),
+    // Android TV has its own remote-first shell (rail, rows, Back stack).
+    if (TvInput.of(context)) return const TvSplash(child: TvShell());
+    return Focus(
+      focusNode: _root,
+      autofocus: true,
+      child: LayoutBuilder(
+        builder: (context, constraints) =>
+            constraints.maxWidth < Breakpoints.sidebar
+            ? _compact(page, hasStation)
+            : _wide(constraints.maxWidth, page, hasStation),
       ),
     );
   }
@@ -473,7 +464,6 @@ class _NavItem extends StatelessWidget {
       child: Tappable(
         onTap: onTap,
         pressScale: 0.98,
-        autofocus: TvInput.of(context) && destination.page == AppPage.browse,
         borderRadius: BorderRadius.circular(12),
         child: AnimatedContainer(
           duration: context.calm
